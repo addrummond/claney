@@ -1,0 +1,6 @@
+managers /managers
+  login    [GET,POST] /login
+  profile  /:user_id/profile
+  settings /:user_id/profile/settings
+    .
+    advanced          /advanced

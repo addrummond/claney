@@ -1,0 +1,1 @@
+From https://github.com/ryanuber/go-glob/blob/master/glob_test.go
