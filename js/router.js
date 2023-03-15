@@ -2,32 +2,29 @@ export class Router {
   constructor(json) {
     this.json = json;
 
-    // Because JS limits us to 100 numbered backreferences, we have to name the
-    // capture groups in the constant portion regexp.
-    let gi = 1;
-    const cpr =
-      json.constantPortionRegexp
-      .replace(
-        /(^|[^\\])\(([^?])/g,
-        (_, bef, af) => bef + '(?<g' + (gi++) + '>' + af
-      )
-
-    this.cpr = new RegExp(cpr, "d");
+    this.cpr = new RegExp(json.constantPortionRegexp);
     this.groupRegexes = { };
     for (const cp of Object.keys(json.families)) {
-      this.groupRegexes[cp] = new RegExp(json.families[cp].matchRegexp, "d");
-    }
-    this.repl = " "; // pad output with arbitrary additional initial char so that output will never be equal to input
-    for (let i = 1; i <= json.constantPortionNGroups; ++i) {
-      this.repl += '$<g' + i + '>';
+      this.groupRegexes[cp] = new RegExp(json.families[cp].matchRegexp);
     }
   }
 
   route(url) {
-    let cp = url.replace(this.cpr, this.repl);
-    if (cp === url)
+    // We can't easily use '.replace' in Javascript because backreferences to
+    // match groups (e.g. '$12') max out at two digits. ES2018 introduces named
+    // capture groups. We could mung the regex to name each capture group (e.g.
+    // '(?<g1>...', '(?<g2>', ...), and then refer back to an unlimited number of
+    // capture groups by name. However, this would possibly limit browser
+    // compat. Instead we just manually join the matches into a string.
+    const m = url.match(this.cpr);
+    if (m === null)
       return null;
-    cp = cp.substring(1) // remove initial padding char
+
+    let cp = '';
+    for (let i = 1; i <= this.json.constantPortionNGroups; ++i) {
+      if (m[i] !== undefined)
+        cp += m[i];
+    }
 
     const family = this.json.families[cp];
     if (family === undefined)
@@ -42,18 +39,17 @@ export class Router {
     let params = { };
     const member = family.members[groupIndex];
     for (const [name, val] of Object.entries(member.paramGroupNumbers)) {
-      const [from, to] = submatches.indices[val];
-      params[name] = url.substring(from, to);
+      params[name] = submatches[val];
     }
 
-    const [qfrom, qto] = submatches.indices[submatches.indices.length-2] || [0, 0];
-    const [afrom, ato] = submatches.indices[submatches.indices.length-1] || [0, 0];
+    const query = submatches[submatches.length-2] || "";
+    const anchor = submatches[submatches.length-1] || "";
 
     return {
       name: member.name,
       params,
-      query: url.substring(qfrom, qto),
-      anchor: url.substring(afrom, ato),
+      query,
+      anchor,
       tags: member.tags,
       methods: member.methods
     };
@@ -66,7 +62,7 @@ export class Router {
     let gi = 0;
 
     for (let l = 0; l < nLevels; ++l, nLeaves >>= 1) {
-      if (match.indices[nonParamGroupNumbers[mi]] === undefined) {
+      if (match[nonParamGroupNumbers[mi]] === undefined) {
         // take the right branch
         gi += nLeaves;
         mi += nLeaves*2;
