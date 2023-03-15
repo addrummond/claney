@@ -236,6 +236,29 @@ func TestParseRouteFileMethodParsing(t *testing.T) {
 	}
 }
 
+func TestStripComment(t *testing.T) {
+	type tst struct {
+		input, output string
+	}
+
+	cases := []tst{
+		{"", ""},
+		{"foo", "foo"},
+		{"foo#bar", "foo"},
+		{"foo #bar", "foo "},
+		{"foo \\#bar", "foo #bar"},
+		{"foo\\#bar", "foo#bar"},
+		{"foo#", "foo"},
+	}
+
+	for _, c := range cases {
+		out := stripComment(c.input)
+		if c.output != out {
+			t.Errorf("Expected '%v', got '%v'\n", c.output, out)
+		}
+	}
+}
+
 // Fuzz test the parser on random binary input. This catches bugs that cause
 // panics or infinite loops.
 func TestParseRouteFileBinaryFuzz(t *testing.T) {

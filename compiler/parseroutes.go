@@ -686,17 +686,24 @@ func stripComment(line string) string {
 
 	for i := range line {
 		if line[i] == '#' && (i == 0 || line[i-1] != ':') {
+			// there's a hash not preceded by a ':'
 			if i > 0 && line[i-1] == '\\' && (i-2 < 0 || line[i-2] != '\\') {
+				// it's escaped, so it's not a comment.
 				if b.Len() == 0 {
-					b.WriteString(line[0:i])
+					b.WriteString(line[0 : i-1])
 				}
-				b.WriteRune('#')
+				b.WriteByte('#')
 			} else {
+				// it's not escaped, so it is the start of a comment
 				if b.Len() > 0 {
 					return b.String()
 				}
 				return line[0:i]
 			}
+		} else if b.Len() > 0 {
+			// we can't use a subslice of the input string because of an escaped '#',
+			// so copy the char to a new string.
+			b.WriteByte(line[i])
 		}
 	}
 
