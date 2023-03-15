@@ -22,6 +22,7 @@ Claney has some opinions about routes:
 * Valid routes must start with `/`.
 * A sequence of two or more `/` characters is equivalent to a single `/`.
 * Query strings and anchors contain supplemental information and aren't used to distinguish between different routes.
+* No special treatment of `#!` anchors.
 
 ## Limitations
 
@@ -288,10 +289,6 @@ claney -input routes -include-tags 'host:host1.foo.com' -output just_host1.json
 claney -input routes -include-tags 'host:host2.foo.com' -output just_host2.json
 claney -input routes -include-tags 'host:*' -output all_hosts.json
 ```
-
-## Hashbang hacks
-
-Claney doesn't offer any special support for `#!` fragments.
 
 ## Hierarchical routes and regexp concision
 
