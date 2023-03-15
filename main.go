@@ -97,9 +97,14 @@ func main() {
 func run(inputFiles []string, output string, specs []compiler.IncludeSpec, verbose bool, withReader func(string, func(io.Reader)) error, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
 	var exitCode int
 
-	withReaders([]io.Reader{}, inputFiles, withReader, func(inputReaders []io.Reader) {
+	err := withReaders([]io.Reader{}, inputFiles, withReader, func(inputReaders []io.Reader) {
 		exitCode = runHelper(inputFiles, inputReaders, output, specs, verbose, withWriter, fprintf, nameSeparator)
 	})
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return 1
+	}
 
 	return exitCode
 }
