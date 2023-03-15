@@ -335,11 +335,12 @@ parameter values. If multiple routes share the same constant portion then the
 matching regex is disjunctive and matches all applicable routes. The route can
 then be identified by the indices of the groups that have non-empty captures.
 
-Capture groups are nested according to the scheme of a binary tree. For example,
-suppose that there are six routes (R1...R6) in a group. The portion of the
-regexp corresponding to each route is wrapped in a capture group. The smallest
-complete binary tree that can hold 6 values in its leaf nodes has a depth of 3.
-The capture groups are therefore nested as follows:
+In the regexp used for the second step, capture groups are nested according to
+the scheme of a binary tree. For example, suppose that there are six routes
+(R1...R6) in a group. The portion of the regexp corresponding to each route is
+wrapped in a capture group. The smallest complete binary tree that can hold 6
+values in its leaf nodes has a depth of 3. The capture groups are therefore
+nested as follows:
 
 ```
 (                            )(                           )
