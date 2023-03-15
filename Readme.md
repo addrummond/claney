@@ -36,10 +36,9 @@ that maps an HTTP method and path string to either 'not found' or
 In other words, Claney just tells you whether the route exists, which route it
 is, and which parameters were supplied. The rest is up to you.
 
-Claney does not directly support matching on hostnames. The section 'Multiple
-hosts' covers some options for dealing with multiple hosts. If your routing
-involves a complex interaction between hosts and paths, Claney is probably not a
-good fit.
+Claney does not directly support matching on hostnames. The 'Hosts' section
+covers some options for dealing with multiple hosts. If your routing involves a
+complex interaction between hosts and paths, Claney is probably not a good fit.
 
 ## Installation and example usage
 
