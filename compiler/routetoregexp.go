@@ -118,11 +118,11 @@ func routeToRegexps(elems []routeElement) RouteInfo {
 
 			// Make it non-greedy if it's not at the end
 			if i+1 == len(elems) {
-				re.WriteString("(\\/*[^\\/?#][^?#]+)")
-				cp.WriteString("\\/*[^\\/?#][^?#]+")
+				re.WriteString("(\\/*[^\\/?#][^?#]*)")
+				cp.WriteString("\\/*[^\\/?#][^?#]*")
 			} else {
-				re.WriteString("(\\/*[^\\/?#][^?#]+?)")
-				cp.WriteString("\\/*[^\\/?#][^?#]+?")
+				re.WriteString("(\\/*[^\\/?#][^?#]*?)")
+				cp.WriteString("\\/*[^\\/?#][^?#]*?")
 			}
 			paramGroupNumbers[elem.value] = groupI
 			groupI++
