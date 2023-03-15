@@ -397,8 +397,6 @@ func getRoutesWithParents(routes []RouteInfo) []RouteWithParents {
 	return rwps
 }
 
-// TODO Would be nice to just always pass around routeWithParents rather than routeInfo.
-// Would avoid needing both this and the function above.
 func withParentRoutes(routes []RouteInfo, iter func(*RouteInfo, []*RouteInfo)) {
 	lastLevel := 0
 	parentRoutes := make([]*RouteInfo, 0)
