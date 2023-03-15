@@ -73,6 +73,13 @@ func main() {
 	flag.Var(excludeMethods, "exclude-method", "exclude routes with this method")
 	flag.Parse()
 
+	// Claney doesn't take any bare arguments, so print the usage message and exit
+	// if any are passed.
+	if flag.Arg(0) != "" {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
 	if *nameSeparator == "" {
 		*nameSeparator = "/"
 	}
