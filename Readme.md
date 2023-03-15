@@ -196,7 +196,7 @@ unnamed and their values are discarded.
 ### Tags
 
 Tags are enclosed in square brackets after the URL pattern and are separated by
-commas. They can contain any characters other than newliness or control
+commas. They can contain any characters other than newlines or control
 characters. Whitespace, and the characters `[],` can be escaped with `\`.
 
 ### Trailing slashes
