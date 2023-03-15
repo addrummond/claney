@@ -262,7 +262,7 @@ The `-input` flag can be passed multiple times to generate output on the basis
 of multiple input files. The output obtained is the same as if the input files
 were concatenated into one.
 
-## Multiple hosts
+## Hosts
 
 Claney does not directly support matching on hostnames. If your routing involves
 a complex interaction between hosts and paths, Claney is probably not a good
