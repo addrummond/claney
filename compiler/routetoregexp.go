@@ -274,11 +274,6 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 
 	// Check for any terminal routes with the same name that aren't adjacent in the file.
 	for name, lines := range terminalLines {
-		// No uniqueness checks for JSON route names
-		if isJsonRouteName(name) {
-			continue
-		}
-
 		if len(lines) <= 1 {
 			continue
 		}

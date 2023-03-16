@@ -30,18 +30,6 @@ func TestProcessRouteFileNoDuplicateRouteNamesOkCase(t *testing.T) {
 	}
 }
 
-func TestProcessRouteFileNoDuplicateRouteNamesOkBecauseJson(t *testing.T) {
-	const routeFile = "{} /foo/x\n[] /bar\n{} /foo/y\n[] /bar/z\n"
-	r, errs := ParseRouteFile(strings.NewReader(routeFile))
-	if len(errs) > 0 {
-		t.Errorf("%+v\n", errs)
-	}
-	_, errs = ProcessRouteFile([][]RouteFileEntry{r}, []string{""}, "/", func([]RouteWithParents) {})
-	if len(errs) != 0 {
-		t.Errorf("Expected no errors, got %+v\n", errs)
-	}
-}
-
 func TestProcessRouteFileNoDuplicateRouteNamesBadDuplicate(t *testing.T) {
 	const routeFile = "a /foo\na /foo/:param\notra /zzz/foo\n\na /foo/bar/amp"
 	r, errs := ParseRouteFile(strings.NewReader(routeFile))

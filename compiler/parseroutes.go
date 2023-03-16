@@ -618,13 +618,6 @@ func ParseRouteFile(input io.Reader) ([]RouteFileEntry, []RouteError) {
 	return entries, errors
 }
 
-func isJsonRouteName(name string) bool {
-	if len(name) == 0 {
-		return false
-	}
-	return name[0] == '"' || name[0] == '\'' || name[0] == '{' || name[0] == '['
-}
-
 func ParseRouteFiles(inputFiles []string, inputReaders []io.Reader) ([][]RouteFileEntry, []RouteError) {
 	if len(inputFiles) != len(inputReaders) {
 		panic("Bad arguments passed to 'ParseRouteFiles': inputFiles and inputReaders must have same length")
