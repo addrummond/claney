@@ -13,7 +13,6 @@ but it has not yet been used in anger.**
 * Routes can be tagged and output can be limited to routes with a given tag. (So
   that e.g. your frontend doesn't recognize API routes.)
 * Routing requires only two regular expression operations: a find/replace followed by a match.
-* Routing is O(1) in the number of routes in realistic cases and O(log n) in the worst case.
 
 ## Opinions
 
