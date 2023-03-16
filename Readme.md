@@ -59,7 +59,7 @@ users         /users                       [users]
   settings    /:user_id/settings
 managers      /managers                    [managers,admin]
   login       /login
-  login       /login
+  login       [POST] /login
   settings    /:manager_id/settings
   user        /:manager_id/user/:user_id
   delete      [POST] /:manager_id/delete   [api]
