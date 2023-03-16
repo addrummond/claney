@@ -10,21 +10,13 @@ export class Router {
   }
 
   route(url) {
-    // We can't easily use '.replace' in Javascript because backreferences to
-    // match groups (e.g. '$12') max out at two digits. ES2018 introduces named
-    // capture groups. We could mung the regex to name each capture group (e.g.
-    // '(?<g1>...', '(?<g2>', ...), and then refer back to an unlimited number of
-    // capture groups by name. However, this would possibly limit browser
-    // compat. Instead we just manually join the matches into a string.
     const m = url.match(this.cpr);
     if (m === null)
       return null;
 
-    let cp = '';
-    for (let i = 1; i <= this.json.constantPortionNGroups; ++i) {
-      if (m[i] !== undefined)
-        cp += m[i];
-    }
+    // join can hopefully do a better job iterating over the sparse array than
+    // we could by manually incrementing an index.
+    const cp = m.join('').substring(m[0].length);
 
     const family = this.json.families[cp];
     if (family === undefined)
