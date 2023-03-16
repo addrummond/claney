@@ -3,9 +3,9 @@ export class Router {
     this.json = json;
 
     this.cpr = new RegExp(json.constantPortionRegexp);
-    this.groupRegexes = { };
+    this.groupRegexps = { };
     for (const cp of Object.keys(json.families)) {
-      this.groupRegexes[cp] = new RegExp(json.families[cp].matchRegexp);
+      this.groupRegexps[cp] = new RegExp(json.families[cp].matchRegexp);
     }
   }
 
@@ -22,7 +22,7 @@ export class Router {
     if (family === undefined)
       return null;
 
-    const submatches = url.match(this.groupRegexes[cp]);
+    const submatches = url.match(this.groupRegexps[cp]);
     if (submatches === null)
       throw new Error("Internal error in 'route': constant portion regexp matched, but route-specific regexp didn't. This shouldn't happen.");
   
