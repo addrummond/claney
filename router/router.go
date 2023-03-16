@@ -90,7 +90,7 @@ func Route(r *Router, url string) (RouteResult, bool) {
 
 	submatches := family.MatchRegexp.re.FindStringSubmatch(url)
 	if submatches == nil {
-		panic("Internal error in 'Route': constant portion regexp matched, but route-specific regexp didn't. This shouldn't happen.")
+		return RouteResult{}, false
 	}
 
 	groupIndex := findGroupIndex(submatches, family.NonparamGroupNumbers, family.NLevels)

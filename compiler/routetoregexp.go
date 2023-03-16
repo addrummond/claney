@@ -153,20 +153,6 @@ func routeToRegexps(elems []routeElement) RouteInfo {
 			if i+1 != len(elems) {
 				panic("What's a 'no trailing slash' element doing here?!")
 			}
-			common := "(?:[^\\/?#]|)"
-			re.WriteString(common)
-			cp.WriteString(common)
-		}
-	}
-
-	if len(elems) > 0 {
-		if elems[len(elems)-1].kind == noTrailingSlash {
-		} else if elems[len(elems)-1].kind == slash {
-			re.WriteString("\\/+")
-			cp.WriteString("\\/+")
-		} else {
-			re.WriteString("\\/*")
-			cp.WriteString("\\/*")
 		}
 	}
 
@@ -265,7 +251,14 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 
 	rwps := getRoutesWithParents(infos)
 
-	grouped := groupRoutes(rwps)
+	terminals := make([]RouteWithParents, 0)
+	for _, r := range rwps {
+		if r.Route.terminal {
+			terminals = append(terminals, r)
+		}
+	}
+
+	grouped := groupRoutes(terminals)
 	for _, g := range grouped {
 		if len(g) <= biggestOverlapGroupAllowedBeforeWarning {
 			continue
@@ -345,14 +338,15 @@ func checkForOverlapsWithinGroup(rwps []RouteWithParents) []overlapBetween {
 		resb.WriteString("\\/+")
 		for i, p := range rwp.Parents {
 			if i != 0 {
-				resb.WriteString(slashJoin(rwp.Parents[i-1]))
+				resb.WriteString("\\/+")
 			}
 			resb.WriteString(p.constantPortionRegexp)
 		}
 		if len(rwp.Parents) > 0 {
-			resb.WriteString(slashJoin(rwp.Parents[len(rwp.Parents)-1]))
+			resb.WriteString("\\/+")
 		}
 		resb.WriteString(rwp.Route.constantPortionRegexp)
+		resb.WriteString(routeTerm(rwp.Route))
 
 		regexp, err := regexpToNfa(resb.String())
 		if err != nil {
@@ -429,8 +423,14 @@ func familiesByConstantPortion(routes []RouteInfo) []familyWithConstantPortion {
 
 	withParentRoutes(routes, func(r *RouteInfo, parents []*RouteInfo) {
 		var cpb strings.Builder
-		for _, p := range parents {
+		for i, p := range parents {
+			if i != 0 && !isJustSlash(parents[i-1]) {
+				cpb.WriteString("/")
+			}
 			cpb.WriteString(p.constantPortion)
+		}
+		if len(parents) != 0 && !isJustSlash(parents[len(parents)-1]) {
+			cpb.WriteString("/")
 		}
 		cpb.WriteString(r.constantPortion)
 		cp := cpb.String()
@@ -455,12 +455,12 @@ func familiesByConstantPortion(routes []RouteInfo) []familyWithConstantPortion {
 }
 
 func GetRouteRegexps(routes []RouteInfo) routeRegexps {
-	constantPortionRegexp := getConstantPortionRegexp(routes)
+	constantPortionRegexp, extraCaptureGroups := getConstantPortionRegexp(routes)
 
 	byCp := familiesByConstantPortion(routes)
 	families := make([]routeFamily, 0)
 
-	totalNGroups := 0
+	totalNGroups := extraCaptureGroups
 	for _, r := range routes {
 		totalNGroups += r.constantPortionNGroups
 	}
@@ -721,16 +721,17 @@ func disjoinRegexp(routes []*RouteWithParents) disjoinRegexResult {
 		currentGroupNumber++
 
 		for j, p := range r.Parents {
-			if j != 0 {
-				sb.WriteString(slashJoin(r.Parents[j-1]))
+			if j != 0 && !isJustSlash(r.Parents[j-1]) {
+				sb.WriteString("\\/+")
 			}
 
 			sb.WriteString(p.matchRegexp)
 		}
-		if len(r.Parents) > 0 {
-			sb.WriteString(slashJoin(r.Parents[len(r.Parents)-1]))
+		if len(r.Parents) > 0 && !isJustSlash(r.Parents[len(r.Parents)-1]) {
+			sb.WriteString("\\/+")
 		}
 		sb.WriteString(r.Route.matchRegexp)
+		sb.WriteString(routeTerm(r.Route))
 
 		names[i] = r.Route.Name
 
@@ -774,20 +775,23 @@ func disjoinRegexp(routes []*RouteWithParents) disjoinRegexResult {
 	}
 }
 
-func getConstantPortionRegexp(routes []RouteInfo) string {
+func getConstantPortionRegexp(routes []RouteInfo) (string, int) {
 	var sb strings.Builder
 	sb.WriteString("(?:")
 
 	lastLevel := 0
+	extraCaptureGroups := 0
 	parentRoutes := make([]*RouteInfo, 0)
 	for i := range routes {
 		r := &routes[i]
 
 		regexp := r.constantPortionRegexp
+
 		if r.depth > lastLevel {
 			parentRoutes = append(parentRoutes, &routes[i-1])
 			sb.WriteString("(?:")
 			if routes[i-1].terminal {
+				sb.WriteString(routeTerm(&routes[i-1]))
 				sb.WriteString("|")
 			}
 		} else if r.depth < lastLevel {
@@ -801,12 +805,16 @@ func getConstantPortionRegexp(routes []RouteInfo) string {
 			sb.WriteString("|")
 		}
 		sb.WriteString("(?:")
-		if len(parentRoutes) > 0 {
-			sb.WriteString(slashJoin(parentRoutes[len(parentRoutes)-1]))
+		if len(parentRoutes) > 0 && !isJustSlash(parentRoutes[len(parentRoutes)-1]) {
+			sb.WriteString("(\\/)\\/*")
+			extraCaptureGroups++
 		} else if len(parentRoutes) == 0 {
 			sb.WriteString("\\/+")
 		}
 		sb.WriteString(regexp)
+		if r.terminal && (i+1 >= len(routes) || routes[i+1].depth <= r.depth) {
+			sb.WriteString(routeTerm(r))
+		}
 		sb.WriteByte(')')
 
 		lastLevel = r.depth
@@ -818,14 +826,23 @@ func getConstantPortionRegexp(routes []RouteInfo) string {
 
 	sb.WriteString(")")
 
-	return sb.String()
+	return sb.String(), extraCaptureGroups
 }
 
-func slashJoin(r1 *RouteInfo) string {
-	if len(r1.elems) > 0 && r1.elems[len(r1.elems)-1].kind != slash {
-		return "\\/+"
+func routeTerm(r *RouteInfo) string {
+	if len(r.elems) > 0 {
+		if r.elems[len(r.elems)-1].kind == slash {
+			return "\\/+"
+		}
+		if r.elems[len(r.elems)-1].kind == noTrailingSlash {
+			return ""
+		}
 	}
-	return ""
+	return "\\/*"
+}
+
+func isJustSlash(r *RouteInfo) bool {
+	return len(r.elems) == 0
 }
 
 func wrapConstantPortionRegexp(re string) string {

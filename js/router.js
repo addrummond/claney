@@ -24,7 +24,7 @@ export class Router {
 
     const submatches = url.match(this.groupRegexps[cp]);
     if (submatches === null)
-      throw new Error("Internal error in 'route': constant portion regexp matched, but route-specific regexp didn't. This shouldn't happen.");
+      return null;
   
     const groupIndex = this.#findGroupIndex(submatches, family.nonparamGroupNumbers, family.nLevels);
 

@@ -109,6 +109,33 @@ func TestRouterFinickySlashStuff2(t *testing.T) {
 	})
 }
 
+func TestRouterFinickySlashStuff3(t *testing.T) {
+	const routeFile = `
+trail   /foo/
+notrail /foo!/
+  `
+
+	testRouter(t, routeFile, func(router *Router) {
+		assertRoute(t, router, "/foo/", "trail", map[string]string{}, "", "", []string{"GET"}, []string{})
+		assertRoute(t, router, "/foo", "notrail", map[string]string{}, "", "", []string{"GET"}, []string{})
+	})
+}
+
+func TestRouterFinickySlashStuff4(t *testing.T) {
+	const routeFile = `
+r /
+  rr /
+	  rrr /
+		  .
+			bar /bar
+  `
+
+	testRouter(t, routeFile, func(router *Router) {
+		assertRoute(t, router, "/", "r/rr/rrr", map[string]string{}, "", "", []string{"GET"}, []string{})
+		assertRoute(t, router, "/bar", "r/rr/bar", map[string]string{}, "", "", []string{"GET"}, []string{})
+	})
+}
+
 func TestRouterBinarySearch(t *testing.T) {
 	for n := 1; n < 100; n++ {
 		bsRoute := makeBSRouteFile(n)

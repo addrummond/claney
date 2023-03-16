@@ -100,8 +100,8 @@ func TestProcessRouteFile(t *testing.T) {
 	rrs := GetRouteRegexps(routes)
 
 	const expected = `
-constantPortionRegexp="^(?:(?:\\/+(users)\\/*)(?:|(?:\\/+[^\\/?#]+(\\/)\\/*(home)\\/*)|(?:\\/+[^\\/?#]+(\\/)\\/*(profile)\\/*)|(?:\\/+[^\\/?#]+(\\/)\\/*(orders)\\/*)(?:(?:\\/+[^\\/?#]+\\/*)))|(?:\\/+(managers)\\/*)(?:|(?:\\/+[^\\/?#]+(\\/)\\/*(home)\\/*)|(?:\\/+[^\\/?#]+(\\/)\\/*(profile)\\/*)|(?:\\/+[^\\/?#]+(\\/)\\/*(stats)\\/*)|(?:\\/+(orders)(\\/)\\/*[^\\/?#]+(\\/)\\/*[^\\/?#]+\\/*)|(?:\\/+(foobar)(\\/)\\/*(xyz)(\\/)\\/*[^\\/?#]+\\/*)|(?:\\/+(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*))|(?:\\/+)(?:|(?:(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*)|(?:(foobar)(\\/)\\/*[^\\/?#]+\\/*)|(?:(f)(\\/)\\/*(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*)|(?:(fooba)(\\/)\\/*(r)(\\/)\\/*[^\\/?#]+\\/*)|(?:(f)(\\/)\\/*(oobar)(\\/)\\/*[^\\/?#]+\\/*)))(?:\\?[^#]*)?(?:#.*)?$"
-constantPortionNGroups=45
+constantPortionRegexp="^(?:(?:\\/+(users))(?:\\/*|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(home)\\/*)|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(profile)\\/*)|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(orders))(?:(?:(\\/)\\/*[^\\/?#]+\\/*)))|(?:\\/+(managers))(?:\\/*|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(home)\\/*)|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(profile)\\/*)|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(stats)\\/*)|(?:(\\/)\\/*(orders)(\\/)\\/*[^\\/?#]+(\\/)\\/*[^\\/?#]+\\/*)|(?:(\\/)\\/*(foobar)(\\/)\\/*(xyz)(\\/)\\/*[^\\/?#]+\\/*)|(?:(\\/)\\/*(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*))|(?:\\/+)(?:\\/*|(?:(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*)|(?:(foobar)(\\/)\\/*[^\\/?#]+\\/*)|(?:(f)(\\/)\\/*(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*)|(?:(fooba)(\\/)\\/*(r)(\\/)\\/*[^\\/?#]+\\/*)|(?:(f)(\\/)\\/*(oobar)(\\/)\\/*[^\\/?#]+\\/*)))(?:\\?[^#]*)?(?:#.*)?$"
+constantPortionNGroups=55
 families=
 <families>
 constantPortion=""
@@ -128,7 +128,7 @@ paramGroupNumbers=
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+))(\\?[^#]*)?(#.*)?$"
+matchRegexp="^(?:(\\/+\\/*))(\\?[^#]*)?(#.*)?$"
 constantPortion="f/oo/bar/"
 members=
 <route-group-members>name="dupl/c"
@@ -136,8 +136,8 @@ route=
 <route-with-parents>
 name="dupl/c"
 elems='f' / 'oo' / 'bar' / ${param}
-matchRegexp="f\\/+oo\\/+bar\\/+([^\\/?#]+)\\/*"
-constantPortionRegexp="(f)(\\/)\\/*(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*"
+matchRegexp="f\\/+oo\\/+bar\\/+([^\\/?#]+)"
+constantPortionRegexp="(f)(\\/)\\/*(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+"
 constantPortion="f/oo/bar/"
 constishPrefix="f/oo/bar/"
 nGroups=1
@@ -161,8 +161,8 @@ route=
 <route-with-parents>
 name="dupl/e"
 elems='f' / 'oobar' / ${param}
-matchRegexp="f\\/+oobar\\/+([^\\/?#]+)\\/*"
-constantPortionRegexp="(f)(\\/)\\/*(oobar)(\\/)\\/*[^\\/?#]+\\/*"
+matchRegexp="f\\/+oobar\\/+([^\\/?#]+)"
+constantPortionRegexp="(f)(\\/)\\/*(oobar)(\\/)\\/*[^\\/?#]+"
 constantPortion="f/oobar/"
 constishPrefix="f/oobar/"
 nGroups=1
@@ -186,8 +186,8 @@ route=
 <route-with-parents>
 name="dupl/a"
 elems='foo' / 'bar' / ${param}
-matchRegexp="foo\\/+bar\\/+([^\\/?#]+)\\/*"
-constantPortionRegexp="(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*"
+matchRegexp="foo\\/+bar\\/+([^\\/?#]+)"
+constantPortionRegexp="(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+"
 constantPortion="foo/bar/"
 constishPrefix="foo/bar/"
 nGroups=1
@@ -211,8 +211,8 @@ route=
 <route-with-parents>
 name="dupl/d"
 elems='fooba' / 'r' / ${param}
-matchRegexp="fooba\\/+r\\/+([^\\/?#]+)\\/*"
-constantPortionRegexp="(fooba)(\\/)\\/*(r)(\\/)\\/*[^\\/?#]+\\/*"
+matchRegexp="fooba\\/+r\\/+([^\\/?#]+)"
+constantPortionRegexp="(fooba)(\\/)\\/*(r)(\\/)\\/*[^\\/?#]+"
 constantPortion="fooba/r/"
 constishPrefix="fooba/r/"
 nGroups=1
@@ -236,8 +236,8 @@ route=
 <route-with-parents>
 name="dupl/b"
 elems='foobar' / ${param}
-matchRegexp="foobar\\/+([^\\/?#]+)\\/*"
-constantPortionRegexp="(foobar)(\\/)\\/*[^\\/?#]+\\/*"
+matchRegexp="foobar\\/+([^\\/?#]+)"
+constantPortionRegexp="(foobar)(\\/)\\/*[^\\/?#]+"
 constantPortion="foobar/"
 constishPrefix="foobar/"
 nGroups=1
@@ -261,8 +261,8 @@ route=
 <route-with-parents>
 name="managers"
 elems='managers'
-matchRegexp="managers\\/*"
-constantPortionRegexp="(managers)\\/*"
+matchRegexp="managers"
+constantPortionRegexp="(managers)"
 constantPortion="managers"
 constishPrefix="managers"
 nGroups=0
@@ -279,15 +279,15 @@ paramGroupNumbers=
 nonparamGroupNumbers[1]
 nLevels1
 matchRegexp="^(?:(\\/+managers\\/*))(\\?[^#]*)?(#.*)?$"
-constantPortion="managers/home"
+constantPortion="managers//home"
 members=
 <route-group-members>name="managers/home"
 route=
 <route-with-parents>
 name="managers/home"
 elems=${manager_id} / 'home'
-matchRegexp="([^\\/?#]+)\\/+home\\/*"
-constantPortionRegexp="[^\\/?#]+(\\/)\\/*(home)\\/*"
+matchRegexp="([^\\/?#]+)\\/+home"
+constantPortionRegexp="[^\\/?#]+(\\/)\\/*(home)"
 constantPortion="/home"
 constishPrefix=""
 nGroups=1
@@ -303,16 +303,16 @@ paramGroupNumbers=manager_id: 2
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+managers\\/*\\/+([^\\/?#]+)\\/+home\\/*))(\\?[^#]*)?(#.*)?$"
-constantPortion="managers/profile"
+matchRegexp="^(?:(\\/+managers\\/+([^\\/?#]+)\\/+home\\/*))(\\?[^#]*)?(#.*)?$"
+constantPortion="managers//profile"
 members=
 <route-group-members>name="managers/profile"
 route=
 <route-with-parents>
 name="managers/profile"
 elems=${manager_id} / 'profile'
-matchRegexp="([^\\/?#]+)\\/+profile\\/*"
-constantPortionRegexp="[^\\/?#]+(\\/)\\/*(profile)\\/*"
+matchRegexp="([^\\/?#]+)\\/+profile"
+constantPortionRegexp="[^\\/?#]+(\\/)\\/*(profile)"
 constantPortion="/profile"
 constishPrefix=""
 nGroups=1
@@ -328,16 +328,16 @@ paramGroupNumbers=manager_id: 2
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+managers\\/*\\/+([^\\/?#]+)\\/+profile\\/*))(\\?[^#]*)?(#.*)?$"
-constantPortion="managers/stats"
+matchRegexp="^(?:(\\/+managers\\/+([^\\/?#]+)\\/+profile\\/*))(\\?[^#]*)?(#.*)?$"
+constantPortion="managers//stats"
 members=
 <route-group-members>name="managers/stats"
 route=
 <route-with-parents>
 name="managers/stats"
 elems=${manager_id} / 'stats'
-matchRegexp="([^\\/?#]+)\\/+stats\\/*"
-constantPortionRegexp="[^\\/?#]+(\\/)\\/*(stats)\\/*"
+matchRegexp="([^\\/?#]+)\\/+stats"
+constantPortionRegexp="[^\\/?#]+(\\/)\\/*(stats)"
 constantPortion="/stats"
 constishPrefix=""
 nGroups=1
@@ -353,16 +353,16 @@ paramGroupNumbers=manager_id: 2
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+managers\\/*\\/+([^\\/?#]+)\\/+stats\\/*))(\\?[^#]*)?(#.*)?$"
-constantPortion="managersfoo/bar/"
+matchRegexp="^(?:(\\/+managers\\/+([^\\/?#]+)\\/+stats\\/*))(\\?[^#]*)?(#.*)?$"
+constantPortion="managers/foo/bar/"
 members=
 <route-group-members>name="managers/test2"
 route=
 <route-with-parents>
 name="managers/test2"
 elems='foo' / 'bar' / ${maguffin}
-matchRegexp="foo\\/+bar\\/+([^\\/?#]+)\\/*"
-constantPortionRegexp="(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*"
+matchRegexp="foo\\/+bar\\/+([^\\/?#]+)"
+constantPortionRegexp="(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+"
 constantPortion="foo/bar/"
 constishPrefix="foo/bar/"
 nGroups=1
@@ -378,16 +378,16 @@ paramGroupNumbers=maguffin: 2
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+managers\\/*\\/+foo\\/+bar\\/+([^\\/?#]+)\\/*))(\\?[^#]*)?(#.*)?$"
-constantPortion="managersfoobar/xyz/"
+matchRegexp="^(?:(\\/+managers\\/+foo\\/+bar\\/+([^\\/?#]+)\\/*))(\\?[^#]*)?(#.*)?$"
+constantPortion="managers/foobar/xyz/"
 members=
 <route-group-members>name="managers/test1"
 route=
 <route-with-parents>
 name="managers/test1"
 elems='foobar' / 'xyz' / ${maguffin}
-matchRegexp="foobar\\/+xyz\\/+([^\\/?#]+)\\/*"
-constantPortionRegexp="(foobar)(\\/)\\/*(xyz)(\\/)\\/*[^\\/?#]+\\/*"
+matchRegexp="foobar\\/+xyz\\/+([^\\/?#]+)"
+constantPortionRegexp="(foobar)(\\/)\\/*(xyz)(\\/)\\/*[^\\/?#]+"
 constantPortion="foobar/xyz/"
 constishPrefix="foobar/xyz/"
 nGroups=1
@@ -403,16 +403,16 @@ paramGroupNumbers=maguffin: 2
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+managers\\/*\\/+foobar\\/+xyz\\/+([^\\/?#]+)\\/*))(\\?[^#]*)?(#.*)?$"
-constantPortion="managersorders//"
+matchRegexp="^(?:(\\/+managers\\/+foobar\\/+xyz\\/+([^\\/?#]+)\\/*))(\\?[^#]*)?(#.*)?$"
+constantPortion="managers/orders//"
 members=
 <route-group-members>name="managers/orders"
 route=
 <route-with-parents>
 name="managers/orders"
 elems='orders' / ${user_id} / ${order_id}
-matchRegexp="orders\\/+([^\\/?#]+)\\/+([^\\/?#]+)\\/*"
-constantPortionRegexp="(orders)(\\/)\\/*[^\\/?#]+(\\/)\\/*[^\\/?#]+\\/*"
+matchRegexp="orders\\/+([^\\/?#]+)\\/+([^\\/?#]+)"
+constantPortionRegexp="(orders)(\\/)\\/*[^\\/?#]+(\\/)\\/*[^\\/?#]+"
 constantPortion="orders//"
 constishPrefix="orders/"
 nGroups=2
@@ -428,7 +428,7 @@ paramGroupNumbers=order_id: 3, user_id: 2
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+managers\\/*\\/+orders\\/+([^\\/?#]+)\\/+([^\\/?#]+)\\/*))(\\?[^#]*)?(#.*)?$"
+matchRegexp="^(?:(\\/+managers\\/+orders\\/+([^\\/?#]+)\\/+([^\\/?#]+)\\/*))(\\?[^#]*)?(#.*)?$"
 constantPortion="users"
 members=
 <route-group-members>name="users"
@@ -436,8 +436,8 @@ route=
 <route-with-parents>
 name="users"
 elems='users'
-matchRegexp="users\\/*"
-constantPortionRegexp="(users)\\/*"
+matchRegexp="users"
+constantPortionRegexp="(users)"
 constantPortion="users"
 constishPrefix="users"
 nGroups=0
@@ -454,15 +454,15 @@ paramGroupNumbers=
 nonparamGroupNumbers[1]
 nLevels1
 matchRegexp="^(?:(\\/+users\\/*))(\\?[^#]*)?(#.*)?$"
-constantPortion="users/home"
+constantPortion="users//home"
 members=
 <route-group-members>name="users/home"
 route=
 <route-with-parents>
 name="users/home"
 elems=${user_id} / 'home'
-matchRegexp="([^\\/?#]+)\\/+home\\/*"
-constantPortionRegexp="[^\\/?#]+(\\/)\\/*(home)\\/*"
+matchRegexp="([^\\/?#]+)\\/+home"
+constantPortionRegexp="[^\\/?#]+(\\/)\\/*(home)"
 constantPortion="/home"
 constishPrefix=""
 nGroups=1
@@ -478,16 +478,16 @@ paramGroupNumbers=user_id: 2
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+users\\/*\\/+([^\\/?#]+)\\/+home\\/*))(\\?[^#]*)?(#.*)?$"
-constantPortion="users/orders"
+matchRegexp="^(?:(\\/+users\\/+([^\\/?#]+)\\/+home\\/*))(\\?[^#]*)?(#.*)?$"
+constantPortion="users//orders/"
 members=
 <route-group-members>name="users/orders/order"
 route=
 <route-with-parents>
 name="users/orders/order"
 elems=${order_id}
-matchRegexp="([^\\/?#]+)\\/*"
-constantPortionRegexp="[^\\/?#]+\\/*"
+matchRegexp="([^\\/?#]+)"
+constantPortionRegexp="[^\\/?#]+"
 constantPortion=""
 constishPrefix=""
 nGroups=1
@@ -503,16 +503,16 @@ paramGroupNumbers=order_id: 3, user_id: 2
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+users\\/*\\/+([^\\/?#]+)\\/+orders\\/*\\/+([^\\/?#]+)\\/*))(\\?[^#]*)?(#.*)?$"
-constantPortion="users/profile"
+matchRegexp="^(?:(\\/+users\\/+([^\\/?#]+)\\/+orders\\/+([^\\/?#]+)\\/*))(\\?[^#]*)?(#.*)?$"
+constantPortion="users//profile"
 members=
 <route-group-members>name="users/profile"
 route=
 <route-with-parents>
 name="users/profile"
 elems=${user_id} / 'profile'
-matchRegexp="([^\\/?#]+)\\/+profile\\/*"
-constantPortionRegexp="[^\\/?#]+(\\/)\\/*(profile)\\/*"
+matchRegexp="([^\\/?#]+)\\/+profile"
+constantPortionRegexp="[^\\/?#]+(\\/)\\/*(profile)"
 constantPortion="/profile"
 constishPrefix=""
 nGroups=1
@@ -528,7 +528,7 @@ paramGroupNumbers=user_id: 2
 </route-group-members>
 nonparamGroupNumbers[1]
 nLevels1
-matchRegexp="^(?:(\\/+users\\/*\\/+([^\\/?#]+)\\/+profile\\/*))(\\?[^#]*)?(#.*)?$"
+matchRegexp="^(?:(\\/+users\\/+([^\\/?#]+)\\/+profile\\/*))(\\?[^#]*)?(#.*)?$"
 </families>
 `
 
@@ -633,7 +633,7 @@ func TestOverlapDetection(t *testing.T) {
 			"  bar /\n"+
 			"    amp /",
 	)
-	assertOverlap( // TODO should fail
+	assertOverlap(
 		t,
 		2, 4,
 		""+
@@ -641,6 +641,35 @@ func TestOverlapDetection(t *testing.T) {
 			"  bar /\n"+
 			"    .\n"+
 			"    amp /",
+	)
+	assertOverlap(
+		t,
+		2, 4,
+		""+
+			"r /\n"+
+			"  rr /\n"+
+			"    .\n"+
+			"    rrr /\n"+
+			"      .\n"+
+			"      bar /bar\n",
+	)
+	assertNoOverlap(
+		t,
+		""+
+			"r /\n"+
+			"  rr /\n"+
+			"    rrr /\n"+
+			"      .\n"+
+			"      bar /bar\n",
+	)
+	assertNoOverlap(
+		t,
+		""+
+			"r /\n"+
+			"  rr /\n"+
+			"    .\n"+
+			"    rrr /\n"+
+			"      bar /bar\n",
 	)
 }
 
@@ -659,7 +688,7 @@ func TestDisjoinRegexpComplex(t *testing.T) {
 	testDisjoinRegexp(
 		t,
 		routes,
-		"(?:(((\\/+PREFIX\\/foo)|(\\/+PREFIX\\/bar([^\\/]+)fug([^\\/]+)))|((\\/+amp)|(\\/+PREFIX\\/one)))|(((\\/+two([^\\/]+))|(\\/+three))))",
+		"(?:(((\\/+PREFIX\\/foo\\/*)|(\\/+PREFIX\\/bar([^\\/]+)fug([^\\/]+)\\/*))|((\\/+amp\\/*)|(\\/+PREFIX\\/one\\/*)))|(((\\/+two([^\\/]+)\\/*)|(\\/+three\\/*))))",
 		[]map[string]int{{}, {"1": 5, "2": 6}, {}, {}, {"1": 13}, {}},
 		[]int{1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 14},
 	)
@@ -677,13 +706,14 @@ func TestRouteMatching(t *testing.T) {
 
 	// Initial slash is not included in the raw regexps but is introduced when
 	// joining hierarchical routes, so there are no leading slashes in the
-	// matching URLs here.
+	// matching URLs here. Similarly, trailing slashes are handled after
+	// hierarchical routes are combined.
 
 	simpleRoute := []routeElement{sl, c("foo")}
 	testMatchRoute(t, true, simpleRoute, "foo")
-	testMatchRoute(t, true, simpleRoute, "foo/")
-	testMatchRoute(t, true, simpleRoute, "foo/")
-	testMatchRoute(t, true, simpleRoute, "foo//")
+	testMatchRoute(t, false, simpleRoute, "foo/")
+	testMatchRoute(t, false, simpleRoute, "foo/")
+	testMatchRoute(t, false, simpleRoute, "foo//")
 	testMatchRoute(t, false, simpleRoute, "bar")
 
 	simpleRouteNoTrailingSlash := []routeElement{sl, c("foo"), noslash}
@@ -930,7 +960,7 @@ func assertOverlap(t *testing.T, line1, line2 int, routeFile string) {
 	}
 	_, routeErrors := ProcessRouteFile([][]RouteFileEntry{entries}, []string{""}, "/", func([]RouteWithParents) {})
 	if len(routeErrors) != 1 {
-		t.Errorf("Expecting to get one route error with an overlap.\nRoutes:\n%v\n", routeFile)
+		t.Errorf("Expecting to get one route error with an overlap, got %v.\nRoutes:\n%v\n", len(routeErrors), routeFile)
 		return
 	}
 	err := routeErrors[0]

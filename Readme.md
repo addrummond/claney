@@ -320,15 +320,15 @@ represented hierarchically in the input.
 ## Implementation
 
 Routing is a two-step process. The first step is a find/replace  using a single
-'God' regular expression that matches all and only valid routes. The result of
-the find/replace is a string containing all of the constant portions of the
-input route. For example, if the route is something like `/manager/10/settings`,
-then the constant portion would be `/manager/settings`. In most cases, the
-constant portion uniquely identifies a route; if so, a dictionary lookup is
-performed to retrieve a regex for matching the route string and extracting its
-parameter values. If multiple routes share the same constant portion then the
-matching regex is disjunctive and matches all applicable routes. The route can
-then be identified by the indices of the groups that have non-empty captures.
+'God' regular expression that matches valid routes. The result of the
+find/replace is a string containing all of the constant portions of the input
+route. For example, if the route is something like `/manager/10/settings`, then
+the constant portion would be `/manager/settings`. In most cases, the constant
+portion uniquely identifies a route; if so, a dictionary lookup is performed to
+retrieve a regex for matching the route string and extracting its parameter
+values. If multiple routes share the same constant portion then the matching
+regex is disjunctive and matches all applicable routes. The route can then be
+identified by the indices of the groups that have non-empty captures.
 
 In the regexp used for the second step, capture groups are nested according to
 the scheme of a binary tree. For example, suppose that there are six routes
@@ -346,6 +346,10 @@ nested as follows:
 The matching route (if any) can be located via binary search. For example, if
 the leftmost capture group on the first line is empty then we know that either
 R5 or R6 is the matching route.
+
+There are some edge cases where an invalid route will match the initial 'God'
+regular expression but then fail to match the second regular expression. Routers
+should interpret this scenario as a 404.
 
 ## Example implementations
 
