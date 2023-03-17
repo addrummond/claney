@@ -192,7 +192,7 @@ func testRouter(t *testing.T, routeFile string, callback func(*Router)) {
 	}
 	rrs := compiler.GetRouteRegexps(routes)
 	routesJson, _ := compiler.RouteRegexpsToJSON(&rrs, []compiler.IncludeSpec{})
-	fmt.Printf("JS %v\n", string(routesJson))
+	//fmt.Printf("JS %v\n", string(routesJson))
 
 	router, err := MakeRouter(routesJson)
 	if err != nil {
