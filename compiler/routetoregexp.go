@@ -86,12 +86,18 @@ func routeToRegexps(elems []routeElement) RouteInfo {
 			constishSuffix.WriteRune('/')
 		case constant:
 			regexEscape(elem.value, &re)
-			cp.WriteByte('(')
-			regexEscape(elem.value, &cp)
-			cp.WriteByte(')')
-			constantPortionNGroups++
-			constantPortion.WriteString(elem.value)
-			constantPortionI++
+
+			// Don't include the first constant in the constant portion regexp. This
+			// is filled in later after factoring
+			if i != 0 {
+				cp.WriteByte('(')
+				regexEscape(elem.value, &cp)
+				cp.WriteByte(')')
+				constantPortionNGroups++
+				constantPortion.WriteString(elem.value)
+				constantPortionI++
+			}
+
 			if inConstishPrefix {
 				constishPrefix.WriteString(elem.value)
 			}
