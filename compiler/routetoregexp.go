@@ -272,11 +272,7 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 		groupObserver(g)
 	}
 
-	overlaps := checkForOverlaps(grouped)
-	for _, o := range overlaps {
-		errors = append(errors, RouteError{OverlappingRoutes, o.route1.Line, "", o.route2.Line, nil, []string{o.route1.Filename, o.route2.Filename}})
-	}
-
+	errors = append(errors, checkForOverlaps(grouped)...)
 	errors = append(errors, checkNonadjacentNamesakes(terminalLines, linesWithEntries)...)
 
 	return infos, errors
@@ -325,16 +321,21 @@ func groupRoutes(rwps []RouteWithParents) [][]RouteWithParents {
 	return byPrefixAndSuffix
 }
 
-func checkForOverlaps(grouped [][]RouteWithParents) []overlapBetween {
-	overlaps := make([]overlapBetween, 0)
+func checkForOverlaps(grouped [][]RouteWithParents) []RouteError {
+	var errors []RouteError
 	for _, routes := range grouped {
-		overlaps = append(overlaps, checkForOverlapsWithinGroup(routes)...)
-		if len(overlaps) > maxOverlaps {
+		os := checkForOverlapsWithinGroup(routes)
+
+		for _, o := range os {
+			errors = append(errors, RouteError{OverlappingRoutes, o.route1.Line, "", o.route2.Line, nil, []string{o.route1.Filename, o.route2.Filename}})
+		}
+
+		if len(errors) > maxOverlaps {
 			break
 		}
 	}
 
-	return overlaps
+	return errors
 }
 
 func checkForOverlapsWithinGroup(rwps []RouteWithParents) []overlapBetween {
