@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -240,4 +241,54 @@ func assertRoute(t *testing.T, router *Router, url, expectedName string, expecte
 	if !reflect.DeepEqual(routeResult.tags, expectedTags) {
 		t.Errorf("Expected tags: %+v\nGot tags: %+v\n", expectedTags, routeResult.tags)
 	}
+}
+
+func benchmarkRouterSimpleRoutes(b *testing.B, nRoutes int) {
+	var sb strings.Builder
+	for i := 0; i < nRoutes; i++ {
+		sb.WriteString(fmt.Sprintf("%vfoo /%vfoo\n", i, i))
+	}
+	routeFile := sb.String()
+	entries, errors := compiler.ParseRouteFile(strings.NewReader(routeFile))
+	if len(errors) > 0 {
+		b.Errorf("Errors parsing route file: %+v\n", errors)
+	}
+	routes, routeErrors := compiler.ProcessRouteFile([][]compiler.RouteFileEntry{entries}, []string{""}, "/", func([]compiler.RouteWithParents) {})
+	if len(routeErrors) > 0 {
+		b.Errorf("Errors processing route file: %+v\n", routeErrors)
+	}
+	rrs := compiler.GetRouteRegexps(routes)
+	routesJson, _ := compiler.RouteRegexpsToJSON(&rrs, []compiler.IncludeSpec{})
+	os.WriteFile(fmt.Sprintf("routes%v", nRoutes), []byte(routesJson), 0)
+	router, err := MakeRouter(routesJson)
+	if err != nil {
+		b.Errorf("%v\n", err)
+	}
+
+	urlsToTest := make([]string, 10)
+	for i := 0; i < 10; i++ {
+		urlsToTest[i] = fmt.Sprintf("/%vfoo", i*(nRoutes/10))
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		Route(&router, urlsToTest[b.N%10])
+	}
+}
+
+func BenchmarkRouterSimpleRoutes10(b *testing.B) {
+	benchmarkRouterSimpleRoutes(b, 10)
+}
+
+func BenchmarkRouterSimpleRoutes100(b *testing.B) {
+	benchmarkRouterSimpleRoutes(b, 100)
+}
+
+func BenchmarkRouterSimpleRoutes1000(b *testing.B) {
+	benchmarkRouterSimpleRoutes(b, 1000)
+}
+
+func BenchmarkRouterSimpleRoutes10000(b *testing.B) {
+	benchmarkRouterSimpleRoutes(b, 10000)
 }

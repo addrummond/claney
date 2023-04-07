@@ -772,7 +772,7 @@ func disjoinRegexp(routes []*RouteWithParents) disjoinRegexResult {
 
 func getConstantPortionRegexp(routes []RouteInfo) (string, int) {
 	var sb strings.Builder
-	sb.WriteString("(?:")
+	sb.WriteString("(?:\\/+(?:")
 
 	lastLevel := 0
 	extraCaptureGroups := 0
@@ -789,37 +789,35 @@ func getConstantPortionRegexp(routes []RouteInfo) (string, int) {
 				sb.WriteString(routeTerm(&routes[i-1]))
 				sb.WriteString("|")
 			}
+			// Factor out slash
+			if len(parentRoutes) > 0 && !isJustSlash(parentRoutes[len(parentRoutes)-1]) {
+				sb.WriteString("(\\/)\\/*")
+				extraCaptureGroups++
+			}
+			sb.WriteString("(?:")
 		} else if r.depth < lastLevel {
 			parentRoutes = parentRoutes[0 : len(parentRoutes)-(lastLevel-r.depth)]
 			for j := 0; j < lastLevel-r.depth; j++ {
-				sb.WriteByte(')')
+				sb.WriteString("))")
 			}
 		}
 
 		if i != 0 && routes[i-1].depth >= r.depth {
 			sb.WriteString("|")
 		}
-		sb.WriteString("(?:")
-		if len(parentRoutes) > 0 && !isJustSlash(parentRoutes[len(parentRoutes)-1]) {
-			sb.WriteString("(\\/)\\/*")
-			extraCaptureGroups++
-		} else if len(parentRoutes) == 0 {
-			sb.WriteString("\\/+")
-		}
 		sb.WriteString(regexp)
 		if r.terminal && (i+1 >= len(routes) || routes[i+1].depth <= r.depth) {
 			sb.WriteString(routeTerm(r))
 		}
-		sb.WriteByte(')')
 
 		lastLevel = r.depth
 	}
 
 	for j := 0; j < lastLevel; j++ {
-		sb.WriteByte(')')
+		sb.WriteString("))")
 	}
 
-	sb.WriteString(")")
+	sb.WriteString("))")
 
 	return sb.String(), extraCaptureGroups
 }
