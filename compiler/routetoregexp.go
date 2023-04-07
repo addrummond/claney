@@ -87,16 +87,17 @@ func routeToRegexps(elems []routeElement) RouteInfo {
 		case constant:
 			regexEscape(elem.value, &re)
 
+			// TODO TODO
 			// Don't include the first constant in the constant portion regexp. This
 			// is filled in later after factoring
-			if i != 0 {
-				cp.WriteByte('(')
-				regexEscape(elem.value, &cp)
-				cp.WriteByte(')')
-				constantPortionNGroups++
-				constantPortion.WriteString(elem.value)
-				constantPortionI++
-			}
+			//if i != 0 {
+			cp.WriteByte('(')
+			regexEscape(elem.value, &cp)
+			cp.WriteByte(')')
+			constantPortionNGroups++
+			constantPortion.WriteString(elem.value)
+			constantPortionI++
+			//}
 
 			if inConstishPrefix {
 				constishPrefix.WriteString(elem.value)
@@ -185,6 +186,13 @@ func regexEscape(str string, sb *strings.Builder) {
 	}
 }
 
+type tne struct {
+	file      string
+	line      int
+	fileIndex int
+	entryInex int
+}
+
 func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparator string, groupObserver func([]RouteWithParents)) ([]RouteInfo, []RouteError) {
 	if len(files) != len(filenames) {
 		panic("Error in 'ProcessRouteFile': files and filenames args must be of the same length")
@@ -192,13 +200,6 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 
 	infos := make([]RouteInfo, 0)
 	errors := make([]RouteError, 0)
-
-	type tne struct {
-		file      string
-		line      int
-		fileIndex int
-		entryInex int
-	}
 
 	terminalLines := make(map[string][]tne)
 	linesWithEntries := make(map[int]struct{})
@@ -255,14 +256,12 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 		}
 	}
 
-	rwps := getRoutesWithParents(infos)
-
 	terminals := make([]RouteWithParents, 0)
-	for _, r := range rwps {
-		if r.Route.terminal {
-			terminals = append(terminals, r)
+	withParentRoutes(infos, func(r *RouteInfo, parents []*RouteInfo) {
+		if r.terminal {
+			terminals = append(terminals, RouteWithParents{r, parents})
 		}
-	}
+	})
 
 	grouped := groupRoutes(terminals)
 	for _, g := range grouped {
@@ -277,6 +276,14 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 	for _, o := range overlaps {
 		errors = append(errors, RouteError{OverlappingRoutes, o.route1.Line, "", o.route2.Line, nil, []string{o.route1.Filename, o.route2.Filename}})
 	}
+
+	errors = append(errors, checkNonadjacentNamesakes(terminalLines, linesWithEntries)...)
+
+	return infos, errors
+}
+
+func checkNonadjacentNamesakes(terminalLines map[string][]tne, linesWithEntries map[int]struct{}) []RouteError {
+	var errors []RouteError
 
 	// Check for any terminal routes with the same name that aren't adjacent in the file.
 	for name, lines := range terminalLines {
@@ -299,7 +306,7 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 		}
 	}
 
-	return infos, errors
+	return errors
 }
 
 type overlapBetween struct {
@@ -378,18 +385,6 @@ func checkForOverlapsWithinGroup(rwps []RouteWithParents) []overlapBetween {
 	}
 
 	return overlaps
-}
-
-func getRoutesWithParents(routes []RouteInfo) []RouteWithParents {
-	rwps := make([]RouteWithParents, len(routes))
-
-	i := 0
-	withParentRoutes(routes, func(r *RouteInfo, parents []*RouteInfo) {
-		rwps[i] = RouteWithParents{r, parents}
-		i++
-	})
-
-	return rwps
 }
 
 func withParentRoutes(routes []RouteInfo, iter func(*RouteInfo, []*RouteInfo)) {
