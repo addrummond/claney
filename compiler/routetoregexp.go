@@ -4,27 +4,27 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/addrummond/claney/glob"
 )
 
 type RouteInfo struct {
-	Name                   string
-	Line                   int
-	Filename               string
-	elems                  []routeElement
-	matchRegexp            string
-	constantPortionRegexp  string
-	constantPortion        string
-	constishPrefix         string // constant bar allowance of repeated '/', etc.
-	constishSuffix         string
-	nGroups                int
-	constantPortionNGroups int
-	paramGroupNumbers      map[string]int
-	tags                   map[string]struct{}
-	depth                  int
-	terminal               bool
-	methods                map[string]struct{}
+	Name                  string
+	Line                  int
+	Filename              string
+	elems                 []routeElement
+	matchRegexp           string
+	constantPortionRegexp func(int) string
+	constantPortion       string
+	constishPrefix        string // constant bar allowance of repeated '/', etc.
+	constishSuffix        string
+	nGroups               int
+	paramGroupNumbers     map[string]int
+	tags                  map[string]struct{}
+	depth                 int
+	terminal              bool
+	methods               map[string]struct{}
 }
 
 type routeFamily struct {
@@ -86,12 +86,19 @@ func routeToRegexps(elems []routeElement) RouteInfo {
 			constishSuffix.WriteRune('/')
 		case constant:
 			regexEscape(elem.value, &re)
-			cp.WriteByte('(')
-			regexEscape(elem.value, &cp)
-			cp.WriteByte(')')
-			constantPortionNGroups++
+
 			constantPortion.WriteString(elem.value)
 			constantPortionI++
+
+			// Don't include the first constant in the constant portion regexp. This
+			// is filled in later after factoring
+			if i != 0 {
+				cp.WriteByte('(')
+				regexEscape(elem.value, &cp)
+				cp.WriteByte(')')
+				constantPortionNGroups++
+			}
+
 			if inConstishPrefix {
 				constishPrefix.WriteString(elem.value)
 			}
@@ -156,16 +163,35 @@ func routeToRegexps(elems []routeElement) RouteInfo {
 		}
 	}
 
+	cpRegexString := cp.String()
+	var firstConstant string
+	if len(elems) > 0 && elems[0].kind == constant {
+		firstConstant = elems[0].value
+	}
+
 	return RouteInfo{
-		elems:                  elems,
-		constantPortion:        constantPortion.String(),
-		matchRegexp:            re.String(),
-		constantPortionRegexp:  cp.String(),
-		constishPrefix:         constishPrefix.String(),
-		constishSuffix:         constishSuffix.String(),
-		nGroups:                groupI - 1,
-		constantPortionNGroups: constantPortionNGroups,
-		paramGroupNumbers:      paramGroupNumbers,
+		elems:           elems,
+		constantPortion: constantPortion.String(),
+		matchRegexp:     re.String(),
+		constantPortionRegexp: func(offset int) string {
+			if offset > len(firstConstant) {
+				panic("Bad offset given to 'constantPortionRegexp' function member of 'RouteInfo'")
+			}
+			fc := firstConstant[offset:]
+			if fc != "" {
+				var out strings.Builder
+				out.WriteByte('(')
+				regexEscape(fc, &out)
+				out.WriteByte(')')
+				out.WriteString(cpRegexString)
+				return out.String()
+			}
+			return cpRegexString
+		},
+		constishPrefix:    constishPrefix.String(),
+		constishSuffix:    constishSuffix.String(),
+		nGroups:           groupI - 1,
+		paramGroupNumbers: paramGroupNumbers,
 	}
 }
 
@@ -179,6 +205,13 @@ func regexEscape(str string, sb *strings.Builder) {
 	}
 }
 
+type tne struct {
+	file      string
+	line      int
+	fileIndex int
+	entryInex int
+}
+
 func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparator string, groupObserver func([]RouteWithParents)) ([]RouteInfo, []RouteError) {
 	if len(files) != len(filenames) {
 		panic("Error in 'ProcessRouteFile': files and filenames args must be of the same length")
@@ -186,13 +219,6 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 
 	infos := make([]RouteInfo, 0)
 	errors := make([]RouteError, 0)
-
-	type tne struct {
-		file      string
-		line      int
-		fileIndex int
-		entryInex int
-	}
 
 	terminalLines := make(map[string][]tne)
 	linesWithEntries := make(map[int]struct{})
@@ -249,14 +275,12 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 		}
 	}
 
-	rwps := getRoutesWithParents(infos)
-
 	terminals := make([]RouteWithParents, 0)
-	for _, r := range rwps {
-		if r.Route.terminal {
-			terminals = append(terminals, r)
+	withParentRoutes(infos, func(r *RouteInfo, parents []*RouteInfo) {
+		if r.terminal {
+			terminals = append(terminals, RouteWithParents{r, parents})
 		}
-	}
+	})
 
 	grouped := groupRoutes(terminals)
 	for _, g := range grouped {
@@ -267,10 +291,14 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 		groupObserver(g)
 	}
 
-	overlaps := checkForOverlaps(grouped)
-	for _, o := range overlaps {
-		errors = append(errors, RouteError{OverlappingRoutes, o.route1.Line, "", o.route2.Line, nil, []string{o.route1.Filename, o.route2.Filename}})
-	}
+	errors = append(errors, checkForOverlaps(grouped)...)
+	errors = append(errors, checkNonadjacentNamesakes(terminalLines, linesWithEntries)...)
+
+	return infos, errors
+}
+
+func checkNonadjacentNamesakes(terminalLines map[string][]tne, linesWithEntries map[int]struct{}) []RouteError {
+	var errors []RouteError
 
 	// Check for any terminal routes with the same name that aren't adjacent in the file.
 	for name, lines := range terminalLines {
@@ -293,7 +321,7 @@ func ProcessRouteFile(files [][]RouteFileEntry, filenames []string, nameSeparato
 		}
 	}
 
-	return infos, errors
+	return errors
 }
 
 type overlapBetween struct {
@@ -312,16 +340,21 @@ func groupRoutes(rwps []RouteWithParents) [][]RouteWithParents {
 	return byPrefixAndSuffix
 }
 
-func checkForOverlaps(grouped [][]RouteWithParents) []overlapBetween {
-	overlaps := make([]overlapBetween, 0)
+func checkForOverlaps(grouped [][]RouteWithParents) []RouteError {
+	var errors []RouteError
 	for _, routes := range grouped {
-		overlaps = append(overlaps, checkForOverlapsWithinGroup(routes)...)
-		if len(overlaps) > maxOverlaps {
+		os := checkForOverlapsWithinGroup(routes)
+
+		for _, o := range os {
+			errors = append(errors, RouteError{OverlappingRoutes, o.route1.Line, "", o.route2.Line, nil, []string{o.route1.Filename, o.route2.Filename}})
+		}
+
+		if len(errors) > maxOverlaps {
 			break
 		}
 	}
 
-	return overlaps
+	return errors
 }
 
 func checkForOverlapsWithinGroup(rwps []RouteWithParents) []overlapBetween {
@@ -335,12 +368,12 @@ func checkForOverlapsWithinGroup(rwps []RouteWithParents) []overlapBetween {
 			if i != 0 {
 				resb.WriteString("\\/+")
 			}
-			resb.WriteString(p.constantPortionRegexp)
+			resb.WriteString(p.matchRegexp)
 		}
 		if len(rwp.Parents) > 0 {
 			resb.WriteString("\\/+")
 		}
-		resb.WriteString(rwp.Route.constantPortionRegexp)
+		resb.WriteString(rwp.Route.matchRegexp)
 		resb.WriteString(routeTerm(rwp.Route))
 
 		regexp, err := regexpToNfa(resb.String())
@@ -372,18 +405,6 @@ func checkForOverlapsWithinGroup(rwps []RouteWithParents) []overlapBetween {
 	}
 
 	return overlaps
-}
-
-func getRoutesWithParents(routes []RouteInfo) []RouteWithParents {
-	rwps := make([]RouteWithParents, len(routes))
-
-	i := 0
-	withParentRoutes(routes, func(r *RouteInfo, parents []*RouteInfo) {
-		rwps[i] = RouteWithParents{r, parents}
-		i++
-	})
-
-	return rwps
 }
 
 func withParentRoutes(routes []RouteInfo, iter func(*RouteInfo, []*RouteInfo)) {
@@ -450,15 +471,14 @@ func familiesByConstantPortion(routes []RouteInfo) []familyWithConstantPortion {
 }
 
 func GetRouteRegexps(routes []RouteInfo) routeRegexps {
-	constantPortionRegexp, extraCaptureGroups := getConstantPortionRegexp(routes)
+	tree := getConstantPortionTree(routes)
+	optimizeConstantPortionTree(tree)
+	constantPortionRegexp := getConstantPortionRegexp(tree)
 
 	byCp := familiesByConstantPortion(routes)
 	families := make([]routeFamily, 0)
 
-	totalNGroups := extraCaptureGroups
-	for _, r := range routes {
-		totalNGroups += r.constantPortionNGroups
-	}
+	totalNGroups := getNCaptureGroups(constantPortionRegexp)
 
 	for _, fwcp := range byCp {
 		cp := fwcp.constantPortion
@@ -770,58 +790,222 @@ func disjoinRegexp(routes []*RouteWithParents) disjoinRegexResult {
 	}
 }
 
-func getConstantPortionRegexp(routes []RouteInfo) (string, int) {
-	var sb strings.Builder
-	sb.WriteString("(?:")
+type cpNode struct {
+	routeInfo  *RouteInfo
+	leftOffset int
+	factorChar rune // 0 if regular node
+	children   []*cpNode
+}
 
+func getConstantPortionTree(routes []RouteInfo) *cpNode {
+	var root cpNode
+	currentParent := &root
+	parents := []*cpNode{currentParent}
 	lastLevel := 0
-	extraCaptureGroups := 0
-	parentRoutes := make([]*RouteInfo, 0)
+
+	nodes := make([]cpNode, 0, len(routes)*4)
+	makeNode := func(r *RouteInfo) *cpNode {
+		if cap(nodes) <= len(nodes) {
+			nodes = make([]cpNode, 0, cap(nodes)*2)
+		}
+		nodes = append(nodes, cpNode{routeInfo: r})
+		return &nodes[len(nodes)-1]
+	}
+
 	for i := range routes {
 		r := &routes[i]
 
-		regexp := r.constantPortionRegexp
-
-		if r.depth > lastLevel {
-			parentRoutes = append(parentRoutes, &routes[i-1])
-			sb.WriteString("(?:")
-			if routes[i-1].terminal {
-				sb.WriteString(routeTerm(&routes[i-1]))
-				sb.WriteString("|")
+		if r.depth == lastLevel {
+			currentParent.children = append(currentParent.children, makeNode(r))
+		} else if r.depth > lastLevel {
+			if len(currentParent.children) == 0 {
+				panic("Internal error in 'getConstantPortionTree' [1]")
 			}
-		} else if r.depth < lastLevel {
-			parentRoutes = parentRoutes[0 : len(parentRoutes)-(lastLevel-r.depth)]
-			for j := 0; j < lastLevel-r.depth; j++ {
-				sb.WriteByte(')')
+			last := currentParent.children[len(currentParent.children)-1]
+			parents = append(parents, last)
+			last.children = append(last.children, makeNode(r))
+			currentParent = last
+		} else { // if r.depth < lastLevel
+			var i int
+			for i = len(parents) - 1; i >= 1 && r.depth <= parents[i].routeInfo.depth; i-- {
 			}
+			if len(parents) == 0 {
+				panic("Internal error in 'getConstantPortionTree' [2]")
+			}
+			currentParent = parents[i]
+			parents = parents[:i+1]
+			currentParent.children = append(currentParent.children, makeNode(r))
 		}
-
-		if i != 0 && routes[i-1].depth >= r.depth {
-			sb.WriteString("|")
-		}
-		sb.WriteString("(?:")
-		if len(parentRoutes) > 0 && !isJustSlash(parentRoutes[len(parentRoutes)-1]) {
-			sb.WriteString("(\\/)\\/*")
-			extraCaptureGroups++
-		} else if len(parentRoutes) == 0 {
-			sb.WriteString("\\/+")
-		}
-		sb.WriteString(regexp)
-		if r.terminal && (i+1 >= len(routes) || routes[i+1].depth <= r.depth) {
-			sb.WriteString(routeTerm(r))
-		}
-		sb.WriteByte(')')
 
 		lastLevel = r.depth
 	}
 
-	for j := 0; j < lastLevel; j++ {
-		sb.WriteByte(')')
+	return &root
+}
+
+func optimizeConstantPortionTree(tree *cpNode) {
+	if tree == nil {
+		return
+	}
+	if len(tree.children) == 0 {
+		return
 	}
 
-	sb.WriteString(")")
+	sort.Slice(tree.children, func(i, j int) bool {
+		elem1 := tree.children[i]
+		elem2 := tree.children[j]
+		var c1, c2 string
+		if len(elem1.routeInfo.elems) != 0 && elem1.routeInfo.elems[0].kind == constant {
+			c1 = elem1.routeInfo.elems[0].value[elem1.leftOffset:]
+		}
+		if len(elem2.routeInfo.elems) != 0 && elem2.routeInfo.elems[0].kind == constant {
+			c2 = elem2.routeInfo.elems[0].value[elem2.leftOffset:]
+		}
+		if c2 == "" {
+			return false
+		}
+		if c1 == "" {
+			return c2 != ""
+		}
+		// We could just compare the first rune of each string, but then the order
+		// wouldn't be deterministic.
+		return c1 < c2
+	})
 
-	return sb.String(), extraCaptureGroups
+	nByFirstChar := make(map[rune]int)
+	firstCharStartIndices := make(map[rune]int)
+	firstCharEndIndices := make(map[rune]int)
+	var fc, lastChar rune
+	for i, c := range tree.children {
+		fc = getFirstChar(c.routeInfo, c.leftOffset)
+
+		if fc == 0 {
+			nByFirstChar[0]++
+			continue
+		}
+
+		nByFirstChar[fc]++
+		if _, ok := firstCharStartIndices[fc]; !ok {
+			firstCharStartIndices[fc] = i
+		}
+
+		if fc != lastChar {
+			firstCharEndIndices[lastChar] = i
+		}
+		lastChar = fc
+	}
+	if len(tree.children) > 0 {
+		firstCharEndIndices[fc] = len(tree.children)
+	}
+
+	if len(nByFirstChar) >= 3 {
+		for fc, n := range nByFirstChar {
+			if fc == 0 || n < 2 {
+				continue
+			}
+
+			si, ei := firstCharStartIndices[fc], firstCharEndIndices[fc]
+
+			children := make([]*cpNode, ei-si)
+			copy(children, tree.children[si:ei])
+			tree.children[si] = &cpNode{factorChar: fc, children: children}
+			for i := si + 1; i < ei; i++ {
+				tree.children[i] = nil
+			}
+			for _, c := range children {
+				c.leftOffset += utf8.RuneLen(fc)
+			}
+
+		}
+	}
+
+	for _, c := range tree.children {
+		optimizeConstantPortionTree(c)
+	}
+}
+
+func getConstantPortionRegexp(tree *cpNode) string {
+	var sb strings.Builder
+	sb.WriteString("(?:\\/+(?:")
+
+	var rec func(n *cpNode)
+	rec = func(n *cpNode) {
+		if n == nil {
+			return
+		}
+
+		if n.factorChar != 0 {
+			sb.WriteString("(?:(")
+			regexEscape(string(n.factorChar), &sb)
+			sb.WriteString(")(?:")
+			for i, c := range n.children {
+				if c == nil {
+					continue
+				}
+				if i != 0 {
+					sb.WriteByte('|')
+				}
+				rec(c)
+			}
+			sb.WriteString("))")
+			return
+		}
+
+		cpre := n.routeInfo.constantPortionRegexp(n.leftOffset)
+		sb.WriteString(cpre)
+		if len(n.children) == 0 {
+			if n.routeInfo.terminal {
+				sb.WriteString(routeTerm(n.routeInfo))
+			}
+		} else {
+			sb.WriteString("(?:")
+			if n.routeInfo.terminal {
+				sb.WriteString(routeTerm(n.routeInfo))
+				sb.WriteByte('|')
+			}
+			if !isJustSlash(n.routeInfo) {
+				sb.WriteString("(\\/)\\/*")
+			}
+			sb.WriteString("(?:")
+			for i, c := range n.children {
+				if i != 0 {
+					sb.WriteByte('|')
+				}
+				rec(c)
+			}
+			sb.WriteString("))")
+		}
+	}
+
+	for i, c := range tree.children {
+		if c == nil {
+			continue
+		}
+		if i != 0 {
+			sb.WriteByte('|')
+		}
+		rec(c)
+	}
+
+	sb.WriteString("))")
+
+	return sb.String()
+}
+
+func getFirstChar(ri *RouteInfo, leftOffset int) rune {
+	if len(ri.elems) == 0 || ri.elems[0].kind != constant {
+		return 0
+	}
+
+	start := ri.elems[0].value
+	if leftOffset >= len(start) {
+		return 0
+	}
+	r, sz := utf8.DecodeRuneInString(start[leftOffset:])
+	if leftOffset+sz > len(start) {
+		panic("Internal error in 'getFirstChar'")
+	}
+	return r
 }
 
 func routeTerm(r *RouteInfo) string {
@@ -846,6 +1030,43 @@ func wrapConstantPortionRegexp(re string) string {
 
 func wrapMatchRegexp(re string) string {
 	return "^" + re + "(\\?[^#]*)?(#.*)?$"
+}
+
+func getNCaptureGroups(re string) int {
+	n := 0
+	for i := range re {
+		c := re[i]
+		if c == '(' && (i == 0 || re[i-1] != '\\') && (i+2 >= len(re) || re[i+1] != '?' || re[i+2] != ':') {
+			n++
+		}
+	}
+	return n
+}
+
+func debugPrintCpTree(n *cpNode, indent int) string {
+	if n == nil {
+		return ""
+	}
+	out := ""
+	for i := 0; i < indent; i++ {
+		out += "    "
+	}
+	cpre := "_"
+	if n.factorChar != 0 {
+		cpre = fmt.Sprintf("%v:", string(n.factorChar))
+	} else if n.routeInfo != nil {
+		cpre = n.routeInfo.constantPortionRegexp(n.leftOffset)
+		if cpre == "" {
+			cpre = "\"\""
+		}
+	} else {
+		cpre = "."
+	}
+	out += cpre + "\n"
+	for _, c := range n.children {
+		out += debugPrintCpTree(c, indent+1)
+	}
+	return out
 }
 
 func debugFormatRouteRegexps(rr *routeRegexps) string {
@@ -874,15 +1095,13 @@ func debugFormatRouteInfo(ri *RouteInfo) string {
 	out = append(out, "\nmatchRegexp="...)
 	out = appendJsonString(out, ri.matchRegexp)
 	out = append(out, "\nconstantPortionRegexp="...)
-	out = appendJsonString(out, ri.constantPortionRegexp)
+	out = appendJsonString(out, ri.constantPortionRegexp(0))
 	out = append(out, "\nconstantPortion="...)
 	out = appendJsonString(out, ri.constantPortion)
 	out = append(out, "\nconstishPrefix="...)
 	out = appendJsonString(out, ri.constishPrefix)
 	out = append(out, "\nnGroups="...)
 	out = append(out, fmt.Sprintf("%v", ri.nGroups)...)
-	out = append(out, "\nconstantPortionNGroups="...)
-	out = append(out, fmt.Sprintf("%v", ri.constantPortionNGroups)...)
 	out = append(out, "\nparamGroupNumbers="...)
 	out = append(out, fmt.Sprintf("%+v", debugFormatParamGroupNumbers(ri.paramGroupNumbers))...)
 	out = append(out, "\ntags="...)

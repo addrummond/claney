@@ -31,6 +31,7 @@ managers /managers/ [a tag to \
 	backslash /routeending\\withbackslash\\
 	resty     /foo/blobby/:**rest
 	resty     fooo/blobby/:**rest/more
+	anotherf  fxoo/blobby/:**rest/more # added for testing porpoises
 users /users!/
   foo foo
   another   /x/y/z/k
@@ -133,6 +134,60 @@ r /
 	testRouter(t, routeFile, func(router *Router) {
 		assertRoute(t, router, "/", "r/rr/rrr", map[string]string{}, "", "", []string{"GET"}, []string{})
 		assertRoute(t, router, "/bar", "r/rr/bar", map[string]string{}, "", "", []string{"GET"}, []string{})
+	})
+}
+
+func TestRouterOptimization(t *testing.T) {
+	const routeFile = `
+foo11 /11
+foo12 /12
+foo13 /13
+foo14 /14
+foo15 /15
+foo16 /16
+foo17 /17
+foo171 /171
+foo172 /172
+foo173 /173
+foo174 /174
+foo175 /175
+foo21 /21
+foo22 /22
+foo23 /23
+foo24 /24
+foo25 /25
+foo26 /26
+foo27 /27
+foo31 /31
+foo32 /32
+foo33 /33
+foo34 /34
+foo35 /35
+foo36 /36
+foo37 /37
+  `
+
+	testRouter(t, routeFile, func(router *Router) {
+		for i := 1; i <= 3; i++ {
+			for j := 1; j <= 7; j++ {
+				assertRoute(t, router, fmt.Sprintf("/%v%v", i, j), fmt.Sprintf("foo%v%v", i, j), map[string]string{}, "", "", []string{"GET"}, []string{})
+			}
+		}
+		assertRoute(t, router, "/171", "foo171", map[string]string{}, "", "", []string{"GET"}, []string{})
+		assertRoute(t, router, "/172", "foo172", map[string]string{}, "", "", []string{"GET"}, []string{})
+		assertRoute(t, router, "/173", "foo173", map[string]string{}, "", "", []string{"GET"}, []string{})
+		assertRoute(t, router, "/174", "foo174", map[string]string{}, "", "", []string{"GET"}, []string{})
+		assertRoute(t, router, "/175", "foo175", map[string]string{}, "", "", []string{"GET"}, []string{})
+		for i := 4; i <= 9; i++ {
+			for j := 8; j <= 9; j++ {
+				assertNoRoute(t, router, fmt.Sprintf("%v%v", i, j))
+			}
+		}
+		for i := 1; i <= 3; i++ {
+			for j := 1; j <= 7; j++ {
+				assertNoRoute(t, router, fmt.Sprintf("%v%v1", i, j))
+			}
+		}
 	})
 }
 
@@ -245,9 +300,10 @@ func assertRoute(t *testing.T, router *Router, url, expectedName string, expecte
 func benchmarkRouterSimpleRoutes(b *testing.B, nRoutes int) {
 	var sb strings.Builder
 	for i := 0; i < nRoutes; i++ {
-		sb.WriteString(fmt.Sprintf("foo%v /foo%v\n", i, i))
+		sb.WriteString(fmt.Sprintf("%vfoo /%vfoo\n", i, i))
 	}
-	entries, errors := compiler.ParseRouteFile(strings.NewReader(sb.String()))
+	routeFile := sb.String()
+	entries, errors := compiler.ParseRouteFile(strings.NewReader(routeFile))
 	if len(errors) > 0 {
 		b.Errorf("Errors parsing route file: %+v\n", errors)
 	}
@@ -257,6 +313,8 @@ func benchmarkRouterSimpleRoutes(b *testing.B, nRoutes int) {
 	}
 	rrs := compiler.GetRouteRegexps(routes)
 	routesJson, _ := compiler.RouteRegexpsToJSON(&rrs, []compiler.IncludeSpec{})
+	// use the line below to generate the files in js/bench_data, if they need to be updated.
+	//os.WriteFile(fmt.Sprintf("routes%v", nRoutes), []byte(routesJson), 0)
 	router, err := MakeRouter(routesJson)
 	if err != nil {
 		b.Errorf("%v\n", err)
@@ -264,7 +322,7 @@ func benchmarkRouterSimpleRoutes(b *testing.B, nRoutes int) {
 
 	urlsToTest := make([]string, 10)
 	for i := 0; i < 10; i++ {
-		urlsToTest[i] = fmt.Sprintf("/foo%v", i*(nRoutes/10))
+		urlsToTest[i] = fmt.Sprintf("/%vfoo", i*(nRoutes/10))
 	}
 
 	b.ResetTimer()
@@ -288,8 +346,4 @@ func BenchmarkRouterSimpleRoutes1000(b *testing.B) {
 
 func BenchmarkRouterSimpleRoutes10000(b *testing.B) {
 	benchmarkRouterSimpleRoutes(b, 10000)
-}
-
-func BenchmarkRouterSimpleRoutes100000(b *testing.B) {
-	benchmarkRouterSimpleRoutes(b, 100000)
 }

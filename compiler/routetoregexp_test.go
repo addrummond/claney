@@ -50,6 +50,26 @@ func TestProcessRouteFileNoDuplicateRouteNamesBadDuplicate(t *testing.T) {
 	}
 }
 
+func TestRegexGeneration(t *testing.T) {
+	const routeFile = `
+		foo /foo
+		  .
+		  opt1 /opt1
+			opt2 /opt2
+		`
+
+	r, errs := ParseRouteFile(strings.NewReader(routeFile))
+	if len(errs) > 0 {
+		t.Errorf("%+v\n", errs)
+	}
+	routes, errs := ProcessRouteFile([][]RouteFileEntry{r}, []string{""}, "/", func([]RouteWithParents) {})
+	if len(errs) != 0 {
+		t.Errorf("%+v\n", errs)
+	}
+	rrs := GetRouteRegexps(routes)
+	fmt.Printf("%v\n", rrs.constantPortionRegexp)
+}
+
 func TestProcessRouteFile(t *testing.T) {
 	const routeFile = `
 	users /users
@@ -88,8 +108,8 @@ func TestProcessRouteFile(t *testing.T) {
 	rrs := GetRouteRegexps(routes)
 
 	const expected = `
-constantPortionRegexp="^(?:(?:\\/+(users))(?:\\/*|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(home)\\/*)|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(profile)\\/*)|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(orders))(?:(?:(\\/)\\/*[^\\/?#]+\\/*)))|(?:\\/+(managers))(?:\\/*|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(home)\\/*)|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(profile)\\/*)|(?:(\\/)\\/*[^\\/?#]+(\\/)\\/*(stats)\\/*)|(?:(\\/)\\/*(orders)(\\/)\\/*[^\\/?#]+(\\/)\\/*[^\\/?#]+\\/*)|(?:(\\/)\\/*(foobar)(\\/)\\/*(xyz)(\\/)\\/*[^\\/?#]+\\/*)|(?:(\\/)\\/*(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*))|(?:\\/+)(?:\\/*|(?:(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*)|(?:(foobar)(\\/)\\/*[^\\/?#]+\\/*)|(?:(f)(\\/)\\/*(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*)|(?:(fooba)(\\/)\\/*(r)(\\/)\\/*[^\\/?#]+\\/*)|(?:(f)(\\/)\\/*(oobar)(\\/)\\/*[^\\/?#]+\\/*)))(?:\\?[^#]*)?(?:#.*)?$"
-constantPortionNGroups=55
+constantPortionRegexp="^(?:\\/+(?:(?:\\/*|(?:(f)(\\/)\\/*(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*|(f)(\\/)\\/*(oobar)(\\/)\\/*[^\\/?#]+\\/*|(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*|(fooba)(\\/)\\/*(r)(\\/)\\/*[^\\/?#]+\\/*|(foobar)(\\/)\\/*[^\\/?#]+\\/*))|(managers)(?:\\/*|(\\/)\\/*(?:[^\\/?#]+(\\/)\\/*(home)\\/*|[^\\/?#]+(\\/)\\/*(profile)\\/*|[^\\/?#]+(\\/)\\/*(stats)\\/*|(?:(f)(?:(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+\\/*|(oobar)(\\/)\\/*(xyz)(\\/)\\/*[^\\/?#]+\\/*))||(orders)(\\/)\\/*[^\\/?#]+(\\/)\\/*[^\\/?#]+\\/*))|(users)(?:\\/*|(\\/)\\/*(?:[^\\/?#]+(\\/)\\/*(home)\\/*|[^\\/?#]+(\\/)\\/*(profile)\\/*|[^\\/?#]+(\\/)\\/*(orders)(?:(\\/)\\/*(?:[^\\/?#]+\\/*))))))(?:\\?[^#]*)?(?:#.*)?$"
+constantPortionNGroups=49
 families=
 <families>
 constantPortion=""
@@ -104,7 +124,6 @@ constantPortionRegexp=""
 constantPortion=""
 constishPrefix=""
 nGroups=0
-constantPortionNGroups=0
 paramGroupNumbers=
 tags=[]
 methods=[GET]
@@ -129,7 +148,6 @@ constantPortionRegexp="(f)(\\/)\\/*(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+"
 constantPortion="f/oo/bar/"
 constishPrefix="f/oo/bar/"
 nGroups=1
-constantPortionNGroups=6
 paramGroupNumbers=param: 1
 tags=[]
 methods=[GET]
@@ -154,7 +172,6 @@ constantPortionRegexp="(f)(\\/)\\/*(oobar)(\\/)\\/*[^\\/?#]+"
 constantPortion="f/oobar/"
 constishPrefix="f/oobar/"
 nGroups=1
-constantPortionNGroups=4
 paramGroupNumbers=param: 1
 tags=[]
 methods=[GET]
@@ -179,7 +196,6 @@ constantPortionRegexp="(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+"
 constantPortion="foo/bar/"
 constishPrefix="foo/bar/"
 nGroups=1
-constantPortionNGroups=4
 paramGroupNumbers=param: 1
 tags=[]
 methods=[GET]
@@ -204,7 +220,6 @@ constantPortionRegexp="(fooba)(\\/)\\/*(r)(\\/)\\/*[^\\/?#]+"
 constantPortion="fooba/r/"
 constishPrefix="fooba/r/"
 nGroups=1
-constantPortionNGroups=4
 paramGroupNumbers=param: 1
 tags=[]
 methods=[GET]
@@ -229,7 +244,6 @@ constantPortionRegexp="(foobar)(\\/)\\/*[^\\/?#]+"
 constantPortion="foobar/"
 constishPrefix="foobar/"
 nGroups=1
-constantPortionNGroups=2
 paramGroupNumbers=param: 1
 tags=[]
 methods=[GET]
@@ -254,7 +268,6 @@ constantPortionRegexp="(managers)"
 constantPortion="managers"
 constishPrefix="managers"
 nGroups=0
-constantPortionNGroups=1
 paramGroupNumbers=
 tags=[]
 methods=[GET]
@@ -279,7 +292,6 @@ constantPortionRegexp="[^\\/?#]+(\\/)\\/*(home)"
 constantPortion="/home"
 constishPrefix=""
 nGroups=1
-constantPortionNGroups=2
 paramGroupNumbers=manager_id: 1
 tags=[]
 methods=[GET]
@@ -304,7 +316,6 @@ constantPortionRegexp="[^\\/?#]+(\\/)\\/*(profile)"
 constantPortion="/profile"
 constishPrefix=""
 nGroups=1
-constantPortionNGroups=2
 paramGroupNumbers=manager_id: 1
 tags=[]
 methods=[GET]
@@ -329,7 +340,6 @@ constantPortionRegexp="[^\\/?#]+(\\/)\\/*(stats)"
 constantPortion="/stats"
 constishPrefix=""
 nGroups=1
-constantPortionNGroups=2
 paramGroupNumbers=manager_id: 1
 tags=[]
 methods=[GET]
@@ -354,7 +364,6 @@ constantPortionRegexp="(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+"
 constantPortion="foo/bar/"
 constishPrefix="foo/bar/"
 nGroups=1
-constantPortionNGroups=4
 paramGroupNumbers=maguffin: 1
 tags=[]
 methods=[GET]
@@ -379,7 +388,6 @@ constantPortionRegexp="(foobar)(\\/)\\/*(xyz)(\\/)\\/*[^\\/?#]+"
 constantPortion="foobar/xyz/"
 constishPrefix="foobar/xyz/"
 nGroups=1
-constantPortionNGroups=4
 paramGroupNumbers=maguffin: 1
 tags=[]
 methods=[GET]
@@ -404,7 +412,6 @@ constantPortionRegexp="(orders)(\\/)\\/*[^\\/?#]+(\\/)\\/*[^\\/?#]+"
 constantPortion="orders//"
 constishPrefix="orders/"
 nGroups=2
-constantPortionNGroups=3
 paramGroupNumbers=order_id: 2, user_id: 1
 tags=[]
 methods=[GET]
@@ -429,7 +436,6 @@ constantPortionRegexp="(users)"
 constantPortion="users"
 constishPrefix="users"
 nGroups=0
-constantPortionNGroups=1
 paramGroupNumbers=
 tags=[]
 methods=[GET]
@@ -454,7 +460,6 @@ constantPortionRegexp="[^\\/?#]+(\\/)\\/*(home)"
 constantPortion="/home"
 constishPrefix=""
 nGroups=1
-constantPortionNGroups=2
 paramGroupNumbers=user_id: 1
 tags=[]
 methods=[GET]
@@ -479,7 +484,6 @@ constantPortionRegexp="[^\\/?#]+"
 constantPortion=""
 constishPrefix=""
 nGroups=1
-constantPortionNGroups=0
 paramGroupNumbers=order_id: 1
 tags=[]
 methods=[GET]
@@ -504,7 +508,6 @@ constantPortionRegexp="[^\\/?#]+(\\/)\\/*(profile)"
 constantPortion="/profile"
 constishPrefix=""
 nGroups=1
-constantPortionNGroups=2
 paramGroupNumbers=user_id: 1
 tags=[]
 methods=[GET]
@@ -908,7 +911,8 @@ func getSimpleRouteRegexps(elems []routeElement) (string, string, []int) {
 		pgns = append(pgns, n)
 	}
 	sort.Ints(pgns)
-	return "^" + ri.constantPortionRegexp + "$", "^" + ri.matchRegexp + "$", pgns
+	cpre := ri.constantPortionRegexp(0)
+	return "^" + cpre + "$", "^" + ri.matchRegexp + "$", pgns
 }
 
 func makeSimpleRouteWithParents(regexp, name string, parents []*RouteInfo) *RouteWithParents {

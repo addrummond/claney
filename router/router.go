@@ -59,7 +59,7 @@ func MakeRouter(jsonInput []byte) (Router, error) {
 
 	var repl strings.Builder
 	repl.WriteRune(' ') // pad output with arbitrary additional initial char so that output will never be equal to input
-	for i := 1; i <= r.router.ConstantPortionNGroups; i++ {
+	for i := 1; i <= r.router.ConstantPortionNGroups*2; i++ {
 		repl.WriteString(fmt.Sprintf("$%v", i))
 	}
 	r.router.Repl = repl.String()
