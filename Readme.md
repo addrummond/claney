@@ -121,7 +121,7 @@ is joined to A's path and B inherits all of A's tags.
 
 You may define multiple routes with the same name, but they must be defined
 next to each other in the same file.
-The following example shows an acceptable instance of duplicate route names:
+The following example is OK:
 
 ```
 posts /users/posts
@@ -131,7 +131,7 @@ posts /users/posts
 posts /users/posts/:id
 ```
 
-An error is reported if another route is added in between the two `posts` routes:
+But an error is reported if another route is added in between the two `posts` routes:
 
 ```
 # BAD
