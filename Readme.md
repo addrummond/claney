@@ -77,7 +77,7 @@ This input defines the following routes as valid:
 | managers/delete   | POST         | /managers/:manager_id/delete        | `["manager_id", "user_id"]`  | `["admin","api", "managers"]`
 
 By default, `/` is used to join the name of a route to the names of its parent
-routes. A different separator may be used if desired (see 'Basic command line
+routes. A different separator may be used if desired (see 'Command line
 operation' below).
 
 ### General syntax
@@ -226,6 +226,26 @@ Claney guarantees that dictionary keys in its JSON output are always serialized
 in the same order. Output is therefore guaranteed to be identical for identical
 inputs.
 
+### Multiple input files
+
+The `-input` flag can be passed multiple times to generate output on the basis
+of multiple input files. The output obtained is essentialy the same as if the
+input files were concatenated into one. The only difference is that Claney
+considers the least indented route(s) in each file to be at the top level, even
+if the least indented route in one file is more indented than the least indented route
+in another. In other words, given the following two input files, the router recognizes
+`/foo` and `/bar`, not `/foo/bar`:
+
+```
+<input file 1>
+/foo
+```
+
+```
+<input file 2>
+    /bar
+```
+
 ### Filtering the output
 
 The output may be filtered to include or exclude routes with certain methods or
@@ -252,12 +272,6 @@ If the first flag in the sequence is an include, then the initial output route
 set contains all and only the routes included by that flag. If the first flag is
 an exclude, then the initial set contains all routes except those excluded by
 the flag.
-
-### Multiple input files
-
-The `-input` flag can be passed multiple times to generate output on the basis
-of multiple input files. The output obtained is the same as if the input files
-were concatenated into one.
 
 ## Hosts
 
