@@ -119,11 +119,8 @@ is joined to A's path and B inherits all of A's tags.
 
 ### Route name uniqueness
 
-It is permitted to define multiple routes with the same name. However, routes
-with the same name must be defined next to each other in the same file. This
-system retains the flexibility of allowing multiple routes to map to the same
-name while making it difficult to accidentally define duplicate route names.
-
+You may define multiple routes with the same name, but they must be defined
+next to each other in the same file.
 The following example shows an acceptable instance of duplicate route names:
 
 ```
@@ -142,6 +139,9 @@ posts          /users/posts
 something_else /foo/bar
 posts          /users/posts/:id
 ```
+
+This system retains the flexibility of allowing multiple routes to map to the same
+name while making it difficult to accidentally define duplicate route names.
 
 ### Named parameters
 
