@@ -279,7 +279,7 @@ You can add a prefix to the output using the `-output-prefix` flag. This is
 handy if you want to output the routes as a JS file. For example:
 
 ```
-claney -input input.routes -output-prefix 'export ROUTES=' -output output.js
+claney -input input.routes -output-prefix 'export const ROUTES=' -output output.js
 ```
 
 ## Hosts
