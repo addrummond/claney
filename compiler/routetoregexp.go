@@ -77,7 +77,7 @@ func routeToRegexps(elems []routeElement) RouteInfo {
 				continue
 			}
 			re.WriteString("\\/+")
-			cp.WriteString("(\\/)\\/*")
+			cp.WriteString("(\\/)[\\/]*")
 			constantPortionNGroups++
 			constantPortion.WriteRune('/')
 			if inConstishPrefix {
@@ -125,11 +125,11 @@ func routeToRegexps(elems []routeElement) RouteInfo {
 
 			// Make it non-greedy if it's not at the end
 			if i+1 == len(elems) {
-				re.WriteString("(\\/*[^\\/?#][^?#]*)")
-				cp.WriteString("\\/*[^\\/?#][^?#]*")
+				re.WriteString("([\\/]*[^\\/?#][^?#]*)")
+				cp.WriteString("[\\/]*[^\\/?#][^?#]*")
 			} else {
-				re.WriteString("(\\/*[^\\/?#][^?#]*?)")
-				cp.WriteString("\\/*[^\\/?#][^?#]*?")
+				re.WriteString("([\\/]*[^\\/?#][^?#]*?)")
+				cp.WriteString("[\\/]*[^\\/?#][^?#]*?")
 			}
 			paramGroupNumbers[elem.value] = groupI
 			groupI++
@@ -149,7 +149,7 @@ func routeToRegexps(elems []routeElement) RouteInfo {
 				cp.WriteString(common)
 			} else {
 				// See comment above for rest params for why this regexp is relatively complex.
-				common := "(\\/*[^\\/?#][^?#]+?)"
+				common := "([\\/]*[^\\/?#][^?#]+?)"
 				cp.WriteString(common)
 				re.WriteString(common)
 			}
@@ -964,7 +964,7 @@ func getConstantPortionRegexp(tree *cpNode) string {
 				sb.WriteByte('|')
 			}
 			if !isJustSlash(n.routeInfo) {
-				sb.WriteString("(\\/)\\/*")
+				sb.WriteString("(\\/)[\\/]*")
 			}
 			sb.WriteString("(?:")
 			for i, c := range n.children {
@@ -1017,7 +1017,7 @@ func routeTerm(r *RouteInfo) string {
 			return ""
 		}
 	}
-	return "\\/*"
+	return "[\\/]*"
 }
 
 func isJustSlash(r *RouteInfo) bool {
