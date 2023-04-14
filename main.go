@@ -62,6 +62,7 @@ func main() {
 	inputFiles := &inputAccum{}
 	flag.Var(inputFiles, "input", "input file (default stdin)")
 	output := flag.String("output", "", "output file (default stdout)")
+	outputPrefix := flag.String("output-prefix", "", `add a prefix to the output (e.g. "export ROUTES=")`)
 	includeSpecs := make([]compiler.IncludeSpec, 0)
 	includeTags := &filterAccum{true, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
 	excludeTags := &filterAccum{false, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
@@ -91,14 +92,14 @@ func main() {
 		filenames = inputFiles.filenames
 	}
 
-	os.Exit(run(filenames, *output, includeSpecs, *verbose, withReader, withWriter, fmt.Fprintf, *nameSeparator))
+	os.Exit(run(filenames, *output, *outputPrefix, includeSpecs, *verbose, withReader, withWriter, fmt.Fprintf, *nameSeparator))
 }
 
-func run(inputFiles []string, output string, specs []compiler.IncludeSpec, verbose bool, withReader func(string, func(io.Reader)) error, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
+func run(inputFiles []string, output, outputPrefix string, specs []compiler.IncludeSpec, verbose bool, withReader func(string, func(io.Reader)) error, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
 	var exitCode int
 
 	err := withReaders([]io.Reader{}, inputFiles, withReader, func(inputReaders []io.Reader) {
-		exitCode = runHelper(inputFiles, inputReaders, output, specs, verbose, withWriter, fprintf, nameSeparator)
+		exitCode = runHelper(inputFiles, inputReaders, output, outputPrefix, specs, verbose, withWriter, fprintf, nameSeparator)
 	})
 
 	if err != nil {
@@ -109,7 +110,7 @@ func run(inputFiles []string, output string, specs []compiler.IncludeSpec, verbo
 	return exitCode
 }
 
-func runHelper(inputFiles []string, inputReaders []io.Reader, output string, specs []compiler.IncludeSpec, verbose bool, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
+func runHelper(inputFiles []string, inputReaders []io.Reader, output, outputPrefix string, specs []compiler.IncludeSpec, verbose bool, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
 	entries, errors := compiler.ParseRouteFiles(inputFiles, inputReaders)
 
 	if len(errors) > 0 {
@@ -165,6 +166,8 @@ func runHelper(inputFiles []string, inputReaders []io.Reader, output string, spe
 	retCode := 0
 
 	err := withWriter(output, func(of io.Writer) {
+		io.WriteString(of, outputPrefix)
+
 		_, err := of.Write(json)
 		if err != nil {
 			fprintf(os.Stderr, "%v\n", err)
