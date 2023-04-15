@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Example Single Page App</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script type="module">
+      import { Router } from './router.js';
+      import { getReactMicroRouter } from './reactmicrorouter.js';
+      import { routes } from './routes.js';
+
+      const resolve = path => {
+        return React.createElement('div', null, `Hello World: ${path}`);
+      };
+
+      const router = new Router(routes);
+
+      const root1 = ReactDOM.createRoot(document.getElementById('root1'));
+      const { ReactMicroRouter: ReactMicroRouter1, navigate: navigate1 } = getReactMicroRouter();
+      root1.render(React.createElement(ReactMicroRouter1, {resolve, react: React}, null));
+
+      const root2 = ReactDOM.createRoot(document.getElementById('root2'));
+      const { ReactMicroRouter: ReactMicroRouter2, navigate: navigate2 } = getReactMicroRouter();
+      root2.render(React.createElement(ReactMicroRouter2, {resolve, react: React}, null));
+    </script>
+  </head>
+  <body>
+    <h2>Choose a link:</h2>
+    <ul>
+      <li><a href="/customer/login">Customer login</a></li>
+      <li><a href="/customer/settings">Customer settings</a></li>
+      <li><a href="/manager/login">Manager login</a></li>
+      <li><a href="/manager/settings">Manager settings</a></li>
+    </ul>
+
+    <h2>Routed component 1</h2>
+    <div id="root1">
+    </div>
+
+    <h2>Routed component 2</h2>
+    <div id="root2">
+    </div>
+  </body>
+</html>
