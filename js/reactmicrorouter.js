@@ -42,12 +42,8 @@ export function ReactMicroRouter({ resolve, react }) {
   const [currentPath, setCurrentPath] = react.useState(window.location.pathname);
 
   react.useEffect(() => {
-    const popstateHandler = () => {
-      setCurrentPath(window.location.pathname)
-    };
-    const customEventHandler = (e) => {
-      setCurrentPath(new URL(e.detail.href).pathname)
-    };
+    const popstateHandler = () => setCurrentPath(window.location.pathname);
+    const customEventHandler = (e) => setCurrentPath(new URL(e.detail.href).pathname);
 
     // listen for popstate event
     window.addEventListener('popstate', popstateHandler);
