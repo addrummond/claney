@@ -364,8 +364,8 @@ generate `(a(pple|rtichoke))|(p(ear|lum))`.
 
 The Javascript benchmark in `js/router.bench.js` gives a rough idea of the
 performance that can be expected. The input file contains *n* routes of the form
-`/${n}foo` (a fairly pessimal case, given the lack of hierarchy). On an M1
-Macbook Air, the following times per routing operation are observed:
+`/${m}foo` for *m*=1..*n* (a fairly pessimal case, given the lack of hierarchy).
+On an M1 Macbook Air, the following times per routing operation are observed:
 
 ```
 10:    0.00040  milliseconds (per routing operation)
