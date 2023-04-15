@@ -1,11 +1,8 @@
 // Based on https://github.com/ashok-khanna/react-snippets/blob/main/Router.js
 
 let clickListener = null;
-let navigators = [];
 
-function initEventHandler(navigate) {
-  navigators.push(navigate);
-
+function initEventHandler() {
   // Global Event Listener on "click"
   // Credit Chris Morgan: https://news.ycombinator.com/item?id=31373486
   if (clickListener === null) {
@@ -25,9 +22,7 @@ function initEventHandler(navigate) {
         link.target !== "_blank"
       ) {
         event.preventDefault();
-
-        for (const n of navigators)
-          n(link.href);
+        navigate(link.href);
       }
     };
 
@@ -36,49 +31,45 @@ function initEventHandler(navigate) {
 }
 
 export function cleanup() {
-  for (const n of navigators)
-    window.removeEventListener(n);
+  if (clickListener !== null)
+    window.removeEventListener(clickListener);
 }
 
-export function getReactMicroRouter() {
-  let setCurrentPath;
+export function ReactMicroRouter({ resolve, react }) {
+  initEventHandler();
 
-  const navigate = (href) => {
-    if (setCurrentPath) {
-      window.history.pushState({}, "", href);
-      setCurrentPath(new URL(href).pathname);
-    }
-  }
-
-  initEventHandler(navigate);
-
-  return {
-    ReactMicroRouter(props) {
-      return Router(props, f => setCurrentPath = f);
-    },
-    navigate
-  }
-}
-
-function Router({ resolve, react }, assignSetCurrentPath) {
   // state to track URL and force component to re-render on change
   const [currentPath, setCurrentPath] = react.useState(window.location.pathname);
-  assignSetCurrentPath(setCurrentPath);
 
   react.useEffect(() => {
-    const onLocationChange = () => {
-      // update path state to current window URL
-      setCurrentPath(window.location.pathname);
-    }
+    const popstateHandler = () => {
+      setCurrentPath(window.location.pathname)
+    };
+    const customEventHandler = (e) => {
+    setCurrentPath(new URL(e.detail.href).pathname)
+    };
 
     // listen for popstate event
-    window.addEventListener('popstate', () => onLocationChange());
+    window.addEventListener('popstate', popstateHandler);
+
+    // listen for custom event raised when 'navigate' is called.
+    window.addEventListener('reactmicrorouter-url-change', customEventHandler);
 
     // clean up event listener
     return () => {
-      window.removeEventListener('popstate', onLocationChange)
+      window.removeEventListener('popstate', popstateHandler);
+      window.removeEventListener('reactmicrorouter-url-change', customEventHandler);
     };
   }, [])
 
   return resolve(currentPath);
+}
+
+export function navigate (href) {
+  // update url
+  window.history.pushState({}, "", href);
+
+  // communicate to Routes that URL has changed
+  const event = new CustomEvent('reactmicrorouter-url-change', { detail: { href }});
+  window.dispatchEvent(event);
 }
