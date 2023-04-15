@@ -67,7 +67,9 @@ func TestRegexGeneration(t *testing.T) {
 		t.Errorf("%+v\n", errs)
 	}
 	rrs := GetRouteRegexps(routes)
-	fmt.Printf("%v\n", rrs.constantPortionRegexp)
+	// TODO: make proper test
+	_ = rrs
+	//fmt.Printf("%v\n", rrs.constantPortionRegexp)
 }
 
 func TestProcessRouteFile(t *testing.T) {
