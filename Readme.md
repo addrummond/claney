@@ -310,34 +310,6 @@ claney -input routes -include-tags 'host:host2.foo.com' -output just_host2.json
 claney -input routes -include-tags 'host:*' -output all_hosts.json
 ```
 
-## Hierarchical routes and regexp concision
-
-Factoring routes hierarchically enables Claney to output more compact regular expressions. 
-For example, given the following route file, Claney will output regular expressions where
-the common prefix `/user` is factored out:
-
-```
-users /users
-  profile  /:#id/profile
-  settings /:#id/settings
-
-Regular expression:
-  ^(?:(?:\/+(users)\/*)(?:(?:\/+-?[0-9]+(\/)\/*(profile)\/*)|(?:\/+-?[0-9]+(\/)\/*(settings)\/*)))(?:\?[^#]*)?(?:#.*)?$
-```
-
-If the routes are entered non-hierarchially, the regular expression is larger:
-
-```
-profile  /users/:#id/profile
-settings /users/:#id/settings
-
-Regular expression:
-  ^(?:(?:\/+(users)(\/)\/*-?[0-9]+(\/)\/*(profile)\/*)|(?:\/+(users)(\/)\/*-?[0-9]+(\/)\/*(settings)\/*))(?:\?[^#]*)?(?:#.*)?$
-```
-
-Future versions of Claney may automatically factor routes that are not
-represented hierarchically in the input.
-
 ## Implementation
 
 Routing is a two-step process. The first step is a find/replace  using a single
@@ -371,6 +343,66 @@ R5 or R6 is the matching route.
 There are some edge cases where an invalid route will match the initial 'God'
 regular expression but then fail to match the second regular expression. Routers
 should interpret this scenario as a 404.
+
+## Performance considerations
+
+### Router size
+
+Claney generates a single disjunctive regex representing the entire set of valid
+routes. Regex engines are generally not well optimized for massively disjunctive
+regular expressions. Even trivial cases such as `foo|bar|foobar|baz` will
+often trigger unnecessary backtracking and performance linear in the number of
+alternatives.
+
+Claney does a couple of things to make its disjunctive regular expressions
+execute as quickly as possible. First, if routes are specified hierachically in
+the input file, the common prefixes of each route are factored out in the
+regular expression, limiting the amount of backtracking required.
+
+Second, in the case of alternatives at the same level of the hierarchy, Claney
+will factor out common prefixes automatically. For example, rather than
+generating a regular expression fragment such as `foo|bar|foobar|baz`, it will
+generate `(fo(o|obar))|(ba(r|z))`.
+
+The Javascript benchmark in `js/router.bench.js` gives a rough idea of the
+performance that can be expected. The input file contains *n* routes of the form
+`/${n}foo` (a fairly pessimal case, given the lack of hierarchy). On an M1
+Macbook Air, the following times per routing operation are observed:
+
+```
+10:    0.00040  milliseconds (per routing operation)
+100:   0.0013   milliseconds
+1000:  0.0092   milliseconds
+10000: 0.13     milliseconds
+```
+
+### Hierarchical routes and regexp concision
+
+Factoring routes hierarchically enables Claney to output more compact regular expressions. 
+For example, given the following route file, Claney will output regular expressions where
+the common prefix `/user` is factored out:
+
+```
+users /users
+  profile  /:#id/profile
+  settings /:#id/settings
+
+Regular expression:
+  ^(?:(?:\/+(users)\/*)(?:(?:\/+-?[0-9]+(\/)\/*(profile)\/*)|(?:\/+-?[0-9]+(\/)\/*(settings)\/*)))(?:\?[^#]*)?(?:#.*)?$
+```
+
+If the routes are entered non-hierarchially, the regular expression is larger:
+
+```
+profile  /users/:#id/profile
+settings /users/:#id/settings
+
+Regular expression:
+  ^(?:(?:\/+(users)(\/)\/*-?[0-9]+(\/)\/*(profile)\/*)|(?:\/+(users)(\/)\/*-?[0-9]+(\/)\/*(settings)\/*))(?:\?[^#]*)?(?:#.*)?$
+```
+
+Future versions of Claney may automatically factor routes that are not
+represented hierarchically in the input.
 
 ## Example implementations
 
