@@ -346,8 +346,6 @@ should interpret this scenario as a 404.
 
 ## Performance considerations
 
-### Router size
-
 Claney generates a single disjunctive regex representing the entire set of valid
 routes. Regex engines are generally not well optimized for massively disjunctive
 regular expressions. Even trivial cases such as `foo|bar|foobar|baz` will
@@ -356,13 +354,13 @@ alternatives.
 
 Claney does a couple of things to make its disjunctive regular expressions
 execute as quickly as possible. First, if routes are specified hierachically in
-the input file, the common prefixes of each route are factored out in the
-regular expression, limiting the amount of backtracking required.
+the input file, the common prefixes are factored out in the regular expression,
+limiting the amount of backtracking required.
 
 Second, in the case of alternatives at the same level of the hierarchy, Claney
 will factor out common prefixes automatically. For example, rather than
-generating a regular expression fragment such as `foo|bar|foobar|baz`, it will
-generate `(fo(o|obar))|(ba(r|z))`.
+generating a regular expression such as `apple|artichoke|pear|plum`, it will
+generate `(a(pple|rtichoke))|(p(ear|lum))`.
 
 The Javascript benchmark in `js/router.bench.js` gives a rough idea of the
 performance that can be expected. The input file contains *n* routes of the form
@@ -376,33 +374,50 @@ Macbook Air, the following times per routing operation are observed:
 10000: 0.13     milliseconds
 ```
 
-### Hierarchical routes and regexp concision
-
-Factoring routes hierarchically enables Claney to output more compact regular expressions. 
-For example, given the following route file, Claney will output regular expressions where
-the common prefix `/user` is factored out:
-
-```
-users /users
-  profile  /:#id/profile
-  settings /:#id/settings
-
-Regular expression:
-  ^(?:(?:\/+(users)\/*)(?:(?:\/+-?[0-9]+(\/)\/*(profile)\/*)|(?:\/+-?[0-9]+(\/)\/*(settings)\/*)))(?:\?[^#]*)?(?:#.*)?$
-```
-
-If the routes are entered non-hierarchially, the regular expression is larger:
+It is generally advisible to limit individual routers to no more than 1000
+routes. Once a router reaches this size, code style considerations would
+arguably urge its decomposition into smaller routers in any case. While Claney
+does not provide any special facilty for 'including' one router inside another,
+it is easy to use rest parameters to decompose one router into multiple
+subrouters. For example:
 
 ```
-profile  /users/:#id/profile
-settings /users/:#id/settings
+<file main_routes>
+  managers /managers/:**{url} [managers]
+  # add the line below if you want `/managers` to be a valid route,
+  # as rest parameters do not match empty strings.
+  managers /managers          [managers]
 
-Regular expression:
-  ^(?:(?:\/+(users)(\/)\/*-?[0-9]+(\/)\/*(profile)\/*)|(?:\/+(users)(\/)\/*-?[0-9]+(\/)\/*(settings)\/*))(?:\?[^#]*)?(?:#.*)?$
+  clients /clients/:**{url} [clients]
+
+<file manager_routes>
+  foo /foo
+  bar /bar
+
+<file client_routes>
+  amp /amp
+  baz /baz
+
+<router code>
+  const mainRouter = new Router(MAIN_ROUTES_JSON);
+  const managerRouter = new Router(MANAGER_ROUTES_JSON);
+  const clientRouter = new Router(CLIENT_ROUTES_JSON);
+
+  function route(url) {
+    const r = mainRouter.route(url);
+    if (r === null)
+      return null;
+    const subrouteUrl = r.params.url || '/';
+
+    // you might want to add additional metadata to the return value
+    // to indicate which router matched the route.
+    if (r.tags.indexOf("managers") !== -1)
+      return managerRouter.route(subrouteUrl);
+    if (r.tags.indexOf("clients") !== -1)
+      return clientRouter.route(subrouteUrl);
+    return null;
+  }
 ```
-
-Future versions of Claney may automatically factor routes that are not
-represented hierarchically in the input.
 
 ## Example implementations
 
