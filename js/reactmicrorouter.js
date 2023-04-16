@@ -22,7 +22,10 @@ function initEventHandler() {
         link.target !== "_blank"
       ) {
         event.preventDefault();
-        navigate(link.href);
+        if (link.dataset.reactMicroRouterReplaceRoute !== undefined)
+          replaceRoute(link.href);
+        else
+          pushRoute(link.href);
       }
     };
 
@@ -61,11 +64,19 @@ export function ReactMicroRouter({ resolve, react }) {
   return resolve(currentPath);
 }
 
-export function navigate (href) {
-  // update url
-  window.history.pushState({}, "", href);
+export function replaceRoute (href) {
+  return xRoute('replaceState', href);
+}
 
-  // communicate to Routes that URL has changed
-  const event = new CustomEvent('reactmicrorouter-url-change', { detail: { href }});
-  window.dispatchEvent(event);
+export function pushRoute (href) {
+  return xRoute('pushState', href);
+}
+
+function xRoute(func, href) {
+    // update url
+    window.history[func]({}, "", href);
+
+    // communicate to Routes that URL has changed
+    const event = new CustomEvent('reactmicrorouter-url-change', { detail: { href }});
+    window.dispatchEvent(event);
 }

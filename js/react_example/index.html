@@ -6,7 +6,7 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script type="module">
       import { Router } from './router.js';
-      import { ReactMicroRouter, navigate } from './reactmicrorouter.js';
+      import { ReactMicroRouter, replaceRoute } from './reactmicrorouter.js';
       import { routes } from './routes.js';
 
       const router = new Router(routes);
@@ -33,7 +33,7 @@
 
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement(ReactMicroRouter, {resolve, react: React}, null));
-      navigate("/customers/settings");
+      replaceRoute("/customers/settings");
 
       function CustomerLoginPage(_props) {
         return React.createElement('div', null, "Customer login page");
@@ -54,7 +54,7 @@
     <ul>
       <li><a href="/customers/login">Customer login</a></li>
       <li><a href="/customers/settings">Customer settings</a></li>
-      <li><a href="/managers/login">Manager login</a></li>
+      <li><a href="/managers/login" data-react-micro-router-replace-route>Manager login</a> (this link won't add to history; see data attribute)</li>
       <li><a href="/managers/settings">Manager settings</a></li>
       <li><a href="/bad/url">Bad URL</a></li>
     </ul>
