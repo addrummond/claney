@@ -424,6 +424,11 @@ subrouters. For example:
 Javascript and Go router implementations are provided in `js/router.js` and
 `router/router.go`.
 
+There is a simple example of integrating the router into a single-page React app
+in js/react_example. In this directory, run `build.sh` and then `startserver.sh`
+to start a server on localhost:80001. (CORS issues make it necessary to use a
+server.)
+
 ## Name
 
 Claney is named after Stephen Cole Kleene (whose last name is pronounced [ˈkleɪni]).

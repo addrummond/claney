@@ -13,14 +13,40 @@
 
       const resolve = path => {
         const r = router.route(path);
+
         if (r === null)
           return React.createElement('div', null, `Not found`);
-        return React.createElement('div', null, `Hello World: ${path}`);
+
+        let page;
+        switch (r.name) {
+          case "customers/login":
+            page = CustomerLoginPage({}); break;
+          case "customers/settings":
+            page = CustomerSettingsPage({}); break;
+          case "managers/login":
+            page = ManagerLoginPage({}); break;
+          case "managers/settings":
+            page = ManagerSettingsPage({}); break;
+        }
+        return page;
       };
 
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(React.createElement(ReactMicroRouter, {resolve, react: React}, null));
       navigate("/customers/settings");
+
+      function CustomerLoginPage(_props) {
+        return React.createElement('div', null, "Customer login page");
+      }
+      function CustomerSettingsPage(_props) {
+        return React.createElement('div', null, "Customer settings page");
+      }
+      function ManagerLoginPage(_props) {
+        return React.createElement('div', null, "Manager login page");
+      }
+      function ManagerSettingsPage(_props) {
+        return React.createElement('div', null, "Manager settings page");
+      }
     </script>
   </head>
   <body>
@@ -33,7 +59,7 @@
       <li><a href="/bad/url">Bad URL</a></li>
     </ul>
 
-    <h2>Routed component 1</h2>
+    <h2>Routed component</h2>
     <div id="root">
     </div>
   </body>
