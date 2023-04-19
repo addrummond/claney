@@ -64,19 +64,19 @@ export function ReactMicroRouter({ resolve, react }) {
   return resolve(currentPath);
 }
 
-export function replaceRoute (href) {
+export function replaceRoute(href) {
   return xRoute('replaceState', href);
 }
 
-export function pushRoute (href) {
+export function pushRoute(href) {
   return xRoute('pushState', href);
 }
 
 function xRoute(func, href) {
-    // update url
-    window.history[func]({}, "", href);
+  // update url
+  window.history[func]({}, "", href);
 
-    // communicate to Routes that URL has changed
-    const event = new CustomEvent('reactmicrorouter-url-change', { detail: { href }});
-    window.dispatchEvent(event);
+  // communicate to Routes that URL has changed
+  const event = new CustomEvent('reactmicrorouter-url-change', { detail: { href } });
+  window.dispatchEvent(event);
 }
