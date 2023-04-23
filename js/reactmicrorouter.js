@@ -43,6 +43,8 @@ let pendingNavigationResolution = null;
 let setCurrentPaths = { };
 
 function navigateHandler(event) {
+  console.log("E", event);
+
   if (shouldNotInterceptNavigationEvent(event))
     return;
 
@@ -179,9 +181,6 @@ async function xRoute(func, href) {
 function clickHasFollowableLink(event) {
   const link = event.target.closest("a");
   if (! link)
-    return false;
-
-  if (link.dataset.reactMicroRouterIgnore !== undefined)
     return false;
 
   if (
