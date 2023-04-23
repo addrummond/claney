@@ -11,7 +11,7 @@
 
       const router = new Router(routes);
 
-      const resolve = path => {
+      const resolveRoute = path => {
         const r = router.route(path);
 
         if (r === null)
@@ -31,8 +31,12 @@
         return page;
       };
 
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(ReactMicroRouter, {resolve, react: React}, null));
+      const root1 = ReactDOM.createRoot(document.getElementById('root1'));
+      root1.render(React.createElement(ReactMicroRouter, {resolveRoute, react: React}, null));
+
+      const root2 = ReactDOM.createRoot(document.getElementById('root2'));
+      root2.render(React.createElement(ReactMicroRouter, {resolveRoute, react: React}, null));
+
       replaceRoute("/customers/settings");
 
       function CustomerLoginPage(_props) {
@@ -54,13 +58,15 @@
     <ul>
       <li><a href="/customers/login">Customer login</a></li>
       <li><a href="/customers/settings">Customer settings</a></li>
-      <li><a href="/managers/login" data-react-micro-router-replace-route>Manager login</a> (this link won't add to history; see data attribute)</li>
+      <li><a href="/managers/login">Manager login</a></li>
       <li><a href="/managers/settings">Manager settings</a></li>
       <li><a href="/bad/url">Bad URL</a></li>
     </ul>
 
     <h2>Routed component</h2>
-    <div id="root">
-    </div>
+    <h3>Root 1</h3>
+    <div id="root1"></div>
+    <h3>Root 2</h3>
+    <div id="root2"></div>
   </body>
 </html>
