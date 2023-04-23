@@ -92,9 +92,16 @@ function initialize() {
   }
 }
 
+/**
+ * Removes the event handlers added whenever one or more ReactMicroRouter
+ * components is rendered.
+ *
+ * @returns {void}
+ */
 export function cleanup() {
   if (! initialized)
     return;
+  initialized = false;
 
   if (enableNavigationApi && window.navigation) {
     window.navigation.removeEventListener('navigate', navigateHandler);
@@ -105,11 +112,17 @@ export function cleanup() {
   window.removeEventListener("reactmicrorouter-url-change", customEventHandler);
 }
 
+/**
+ * A simple router component. The 'resolveRoute' property should be a function
+ * from paths to rendered components. The optional 'react' property can be used
+ * to pass in a React implementation (window.React is used by default).
+ *
+ * @param {Object} props
+ * @returns {void}
+ */
 export function ReactMicroRouter(props) {
   const resolveRoute = props.resolveRoute;
   const react = props.react || window.React;
-
-  initialize();
 
   const routerId = react.useRef(getRouterId());
 
@@ -119,6 +132,8 @@ export function ReactMicroRouter(props) {
   setCurrentPaths[routerId.current] = setCurrentPath;
 
   react.useEffect(() => {
+    initialize();
+
     if (pendingNavigationResolution !== null) {
       pendingNavigationResolution(null);
       pendingNavigationResolution = null;
@@ -128,12 +143,24 @@ export function ReactMicroRouter(props) {
   return resolveRoute(currentPath[1]);
 }
 
-export async function replaceRoute(href) {
-  return await xRoute('replaceState', href);
+/**
+ * Replaces the current history entry with the specified route.
+ *
+ * @param {string} path
+ * @returns {void}
+ */
+export async function replaceRoute(path) {
+  await xRoute('replaceState', path);
 }
 
-export async function pushRoute(href) {
-  return await xRoute('pushState', href);
+/**
+ * Pushes the specified route onto the history.
+ *
+ * @param {string} path
+ * @returns {void}
+ */
+export async function pushRoute(path) {
+  await xRoute('pushState', path);
 }
 
 async function xRoute(func, href) {
