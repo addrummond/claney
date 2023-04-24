@@ -39,19 +39,32 @@ function clickHandler(event) {
   }
 }
 
+let shouldIgnoreRoute = (r) => false;
+/**
+ * Specifies a function from paths to booleans determining whether or not a
+ * given route should be handled by reactmicrorouter.
+ *
+ * @param {function} predicate
+ */
+export function setShouldIgnoreRoute(predicate) {
+  setShouldIgnoreRoute = r => predicate(r);
+}
+
 let pendingNavigationResolution = null;
 let setCurrentPaths = { };
 
 function navigateHandler(event) {
-  console.log("E", event);
-
   if (shouldNotInterceptNavigationEvent(event))
+    return;
+
+  const path = new URL(event.destination.url).pathname;
+  if (shouldIgnoreRoute(path))
     return;
 
   let empty = true;
   for (const scp of Object.values(setCurrentPaths)) {
     empty = false;
-    scp([getDummyUrlState, new URL(event.destination.url).pathname]);
+    scp([getDummyUrlState, path]);
   }
 
   if (empty)
@@ -69,14 +82,24 @@ function navigateHandler(event) {
 }
 
 function popstateHandler(event) {
+  const path = window.location.pathname;
+  if (shouldIgnoreRoute(path))
+    return;
+
+  event.preventDefault();
+
   for (const scp of Object.values(setCurrentPaths)) {
-    scp([getDummyUrlState(), window.location.pathname]);
+    scp([getDummyUrlState(), path]);
   }
 }
 
 function customEventHandler(event) {
+  const path = new URL(event.detail.href).pathname;
+  if (shouldIgnoreRoute(path))
+    return;
+
   for (const scp of Object.values(setCurrentPaths)) {
-    scp([getDummyUrlState(), new URL(event.detail.href).pathname]);
+    scp([getDummyUrlState(), path]);
   }
 }
 
