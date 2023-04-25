@@ -8,19 +8,20 @@ const enableNavigationApi = true;
 
 // Simple 'bigint' counter.
 function getCounter() {
-  let c = '\x00';
+  let c = [0];
   return () => {
     for (let i = 0; i < c.length; ++i) {
-      if (c.charCodeAt(i) < (1 << 16)-1) {
-        let newc = '';
+      if (c[i] < (1<<30)|((1 << 30)-1)) {
         for (let j = 0; j < i; ++j)
-          newc += '\x00';
-        c = newc + String.fromCharCode(c.charCodeAt(i)+1) + c.substring(i+1);
-        return c;
+          c[j] = 0;
+        ++c[i];
+        return c.join(':')
       }
     }
-    c += '\x00';
-    return c;
+    for (let i = 0; i < c.length; ++i)
+      c[i] = 0;
+    c.push(1);
+    return c.join(':');
   };
 }
 
@@ -40,6 +41,7 @@ function clickHandler(event) {
 }
 
 let shouldIgnoreRoute = (r) => false;
+
 /**
  * Specifies a function from paths to booleans determining whether or not a
  * given route should be handled by reactmicrorouter.
