@@ -105,6 +105,8 @@ function customEventHandler(event) {
   }
 }
 
+const customUrlChangeEventName = 'reactmicrorouter-url-change';
+
 function initialize() {
   if (! initialized) {
     initialized = true;
@@ -115,7 +117,7 @@ function initialize() {
       window.addEventListener("click", clickHandler);
       window.addEventListener("popstate", popstateHandler);
     }
-    window.addEventListener("reactmicrorouter-url-change", customEventHandler);
+    window.addEventListener(customUrlChangeEventName, customEventHandler);
   }
 }
 
@@ -136,7 +138,7 @@ export function cleanup() {
     window.removeEventListener("click", clickHandler);
     window.removeEventListener("popstate", popstateHandler);
   }
-  window.removeEventListener("reactmicrorouter-url-change", customEventHandler);
+  window.removeEventListener(customUrlChangeEventName, customEventHandler);
 }
 
 /**
@@ -199,7 +201,7 @@ async function xRoute(func, href) {
   }
 
   window.history[func]({}, "", href);
-  const event = new CustomEvent('reactmicrorouter-url-change', { detail: { href } });
+  const event = new CustomEvent(customUrlChangeEventName, { detail: { href } });
   window.dispatchEvent(event);
 }
 
