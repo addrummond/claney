@@ -310,34 +310,6 @@ claney -input routes -include-tags 'host:host2.foo.com' -output just_host2.json
 claney -input routes -include-tags 'host:*' -output all_hosts.json
 ```
 
-## Hierarchical routes and regexp concision
-
-Factoring routes hierarchically enables Claney to output more compact regular expressions. 
-For example, given the following route file, Claney will output regular expressions where
-the common prefix `/user` is factored out:
-
-```
-users /users
-  profile  /:#id/profile
-  settings /:#id/settings
-
-Regular expression:
-  ^(?:(?:\/+(users)\/*)(?:(?:\/+-?[0-9]+(\/)\/*(profile)\/*)|(?:\/+-?[0-9]+(\/)\/*(settings)\/*)))(?:\?[^#]*)?(?:#.*)?$
-```
-
-If the routes are entered non-hierarchially, the regular expression is larger:
-
-```
-profile  /users/:#id/profile
-settings /users/:#id/settings
-
-Regular expression:
-  ^(?:(?:\/+(users)(\/)\/*-?[0-9]+(\/)\/*(profile)\/*)|(?:\/+(users)(\/)\/*-?[0-9]+(\/)\/*(settings)\/*))(?:\?[^#]*)?(?:#.*)?$
-```
-
-Future versions of Claney may automatically factor routes that are not
-represented hierarchically in the input.
-
 ## Implementation
 
 Routing is a two-step process. The first step is a find/replace  using a single
@@ -372,10 +344,90 @@ There are some edge cases where an invalid route will match the initial 'God'
 regular expression but then fail to match the second regular expression. Routers
 should interpret this scenario as a 404.
 
+## Performance considerations
+
+Claney generates a single disjunctive regex representing the entire set of valid
+routes. Regex engines are generally not well optimized for massively disjunctive
+regular expressions. Even trivial cases such as `foo|bar|foobar|baz` will
+often trigger unnecessary backtracking and performance linear in the number of
+alternatives.
+
+Claney does a couple of things to make its disjunctive regular expressions
+execute as quickly as possible. First, if routes are specified hierachically in
+the input file, the common prefixes are factored out in the regular expression,
+limiting the amount of backtracking required.
+
+Second, in the case of alternatives at the same level of the hierarchy, Claney
+will factor out common prefixes automatically. For example, rather than
+generating a regular expression such as `apple|artichoke|pear|plum`, it will
+generate `(a(pple|rtichoke))|(p(ear|lum))`.
+
+The Javascript benchmark in `js/router.bench.js` gives a rough idea of the
+performance that can be expected. The input file contains *n* routes of the form
+`/${m}foo` for *m*=1..*n* (a fairly pessimal case, given the lack of hierarchy).
+On an M1 Macbook Air, the following times per routing operation are observed:
+
+```
+10:    0.00040  milliseconds (per routing operation)
+100:   0.0013   milliseconds
+1000:  0.0092   milliseconds
+10000: 0.13     milliseconds
+```
+
+It is generally advisible to limit individual routers to no more than 1000
+routes. Once a router reaches this size, code style considerations would
+arguably urge its decomposition into smaller routers in any case. While Claney
+does not provide any special facilty for 'including' one router inside another,
+it is easy to use rest parameters to decompose one router into multiple
+subrouters. For example:
+
+```
+<file main_routes>
+  managers /managers/:**{url} [managers]
+  # add the line below if you want `/managers` to be a valid route,
+  # as rest parameters do not match empty strings.
+  managers /managers          [managers]
+
+  clients /clients/:**{url} [clients]
+
+<file manager_routes>
+  foo /foo
+  bar /bar
+
+<file client_routes>
+  amp /amp
+  baz /baz
+
+<router code>
+  const mainRouter = new Router(MAIN_ROUTES_JSON);
+  const managerRouter = new Router(MANAGER_ROUTES_JSON);
+  const clientRouter = new Router(CLIENT_ROUTES_JSON);
+
+  function route(url) {
+    const r = mainRouter.route(url);
+    if (r === null)
+      return null;
+    const subrouteUrl = r.params.url || '/';
+
+    // you might want to add additional metadata to the return value
+    // to indicate which router matched the route.
+    if (r.tags.indexOf("managers") !== -1)
+      return managerRouter.route(subrouteUrl);
+    if (r.tags.indexOf("clients") !== -1)
+      return clientRouter.route(subrouteUrl);
+    return null;
+  }
+```
+
 ## Example implementations
 
 Javascript and Go router implementations are provided in `js/router.js` and
 `router/router.go`.
+
+There is a simple example of integrating the router into a single-page React app
+in js/react_example. In this directory, run `build.sh` and then `startserver.sh`
+to start a server on localhost:80001. (CORS issues make it necessary to use a
+server.) The app uses the library in `js/reactmicrorouter.js`.
 
 ## Name
 
