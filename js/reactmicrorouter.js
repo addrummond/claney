@@ -49,7 +49,7 @@ let shouldIgnoreRoute = (r) => false;
  * @param {function} predicate
  */
 export function setShouldIgnoreRoute(predicate) {
-  setShouldIgnoreRoute = r => predicate(r);
+  setShouldIgnoreRoute = r => !!predicate(r);
 }
 
 let pendingNavigationResolution = null;
