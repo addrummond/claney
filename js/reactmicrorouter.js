@@ -229,14 +229,9 @@ function clickHasFollowableLink(event) {
 function shouldNotInterceptNavigationEvent(event) {
   return (
     !event.canIntercept ||
-    // If this is just a hashChange,
-    // just let the browser handle scrolling to the content.
     event.hashChange ||
-    // If this is a download,
-    // let the browser perform the download.
     event.downloadRequest ||
-    // If this is a form submission,
-    // let that go to the server.
-    event.formData
+    event.formData ||
+    !event.destination.url.startsWith(window.location.origin + "/")
   );
 }
