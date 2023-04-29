@@ -14,8 +14,8 @@ export class Router {
     if (m === null)
       return null;
 
-    // join can hopefully do a better job iterating over the sparse array than
-    // we could by manually incrementing an index.
+    // join can do a better job iterating over the sparse array than we could by
+    // manually incrementing an index (confirmed by benchmarking).
     const cp = m.join('').substring(m[0].length);
 
     const family = this.json.families[cp];
