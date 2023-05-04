@@ -426,7 +426,7 @@ Javascript and Go router implementations are provided in `js/router.js` and
 
 There is a simple example of integrating the router into a single-page React app
 in js/react_example. In this directory, run `build.sh` and then `startserver.sh`
-to start a server on localhost:80001. (CORS issues make it necessary to use a
+to start a server on localhost:8001. (CORS issues make it necessary to use a
 server.) The app uses the library in `js/reactmicrorouter.js`.
 
 ## Name
