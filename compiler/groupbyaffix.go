@@ -144,7 +144,7 @@ func getConstishSuffix(r *RouteInfo, parents []*RouteInfo) string {
 }
 
 func removeTrailingSlash(str string) string {
-	if len(str) > 1 /* delibaretely not zero */ && str[len(str)-1] == '/' {
+	if len(str) > 1 /* deliberately not zero */ && str[len(str)-1] == '/' {
 		return str[:len(str)-1]
 	}
 	return str
