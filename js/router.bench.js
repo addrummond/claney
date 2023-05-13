@@ -16,7 +16,7 @@ async function bench(n) {
   const nIterations = 10000;
   const start = performance.now();
   for (let i = 0; i < nIterations; ++i) {
-    for (let j = 0; j < routeStrings.length; ++j) {
+    for (let j = 0; j < nRoutesToProbe; ++j) {
       router.route(routeStrings[j]);
     }
   }
