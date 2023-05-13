@@ -11,6 +11,5 @@ while [ $i -le $n ]; do
   i=$(( i + 1 ))
 done
 
-d=$(basename $(pwd))
 cd ..
 go run main.go -input $out
