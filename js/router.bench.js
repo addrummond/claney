@@ -13,6 +13,13 @@ async function bench(n) {
     routeStrings[i] = r;
   }
 
+  // Check that all the expected routes match.
+  for (let i = 0; i < n; ++i) {
+    const r = `/${i}foo`;
+    if (router.route(r) === null)
+      throw `Expected ${r} to match`;
+  }
+
   const nIterations = 10000;
   const start = performance.now();
   for (let i = 0; i < nIterations; ++i) {
