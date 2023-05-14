@@ -928,7 +928,7 @@ func getConstantPortionRegexp(tree *cpNode) string {
 	var sb strings.Builder
 	sb.WriteString("(?:\\/+(?:")
 
-	var rec func(n *cpNode)
+	var rec func(*cpNode)
 	rec = func(n *cpNode) {
 		if n == nil {
 			return
