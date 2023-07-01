@@ -187,7 +187,7 @@ The following are some examples of URL patterns containing named parameters:
 
 ### Wildcards
 
-The wildcards `*` and `**` may be used in URL patterns. They are respectively
+The wildcards `*` and `**` can be used in URL patterns. They are respectively
 equivalent to string parameters and rest parameters, except that they are
 unnamed and their values are discarded.
 
@@ -291,7 +291,8 @@ fit.
 
 For simple cases there are two workable options:
 
-* Define a separate router for each host. This makes sense for cases such as `foo.com` and `api.foo.com`.
+* Define a separate router for each host. This makes sense for cases such as
+  `foo.com` and `api.foo.com`.
 * Tag each route with the hosts(s) where it is valid.
 
 An example of the second option is the following:
