@@ -26,8 +26,8 @@ Claney has some opinions about routes:
 
 ## Limitations
 
-Claney has an fairly minimalist take on what a router is. A router is function
-that maps an HTTP method and path string to either 'not found' or
+Claney has a minimalist take on what a router is. A router is function that maps
+an HTTP method and path string to either 'not found' or
 
 * a name,
 * a set of named parameters,
