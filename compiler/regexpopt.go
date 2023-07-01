@@ -169,7 +169,7 @@ type singleGroupDisjunct struct {
 	nsgs          []*renode
 }
 
-func findSingleGroupDisjunctsHelper(n *renode, accum *[]singleGroupDisjunct) {
+func findSingleGroupDisjunctsHelper(n *renode, accum *[]singleGroupDisjunct, scratchBuffer *[]byte) {
 	if n.kind == disjunction {
 		groupCount := 0
 		for _, c := range n.children {
@@ -184,7 +184,7 @@ func findSingleGroupDisjunctsHelper(n *renode, accum *[]singleGroupDisjunct) {
 			var nsgs []*renode
 			for _, c := range n.children {
 				if isGroupChild(c) {
-					hash := groupChildTrailingHash(c)
+					hash := groupChildTrailingHash(c, scratchBuffer)
 					if hash == "" {
 						nsgs = append(nsgs, c)
 					} else {
@@ -202,13 +202,13 @@ func findSingleGroupDisjunctsHelper(n *renode, accum *[]singleGroupDisjunct) {
 	}
 
 	for _, c := range n.children {
-		findSingleGroupDisjunctsHelper(c, accum)
+		findSingleGroupDisjunctsHelper(c, accum, scratchBuffer)
 	}
 }
 
-func findSingleGroupDisjuncts(n *renode) []singleGroupDisjunct {
+func findSingleGroupDisjuncts(n *renode, scratchBuffer *[]byte) []singleGroupDisjunct {
 	var accum []singleGroupDisjunct
-	findSingleGroupDisjunctsHelper(n, &accum)
+	findSingleGroupDisjunctsHelper(n, &accum, scratchBuffer)
 	return accum
 }
 
@@ -224,7 +224,7 @@ func isGroupChild(child *renode) bool {
 	return false
 }
 
-func groupChildTrailingHash(child *renode) string {
+func groupChildTrailingHash(child *renode, scratchBuffer *[]byte) string {
 	if len(child.children) > 4 {
 		return ""
 	}
@@ -236,9 +236,14 @@ func groupChildTrailingHash(child *renode) string {
 		if c.kind != seq {
 			return ""
 		}
-		// TODO inefficient copying
 		hasher.Write([]byte{byte(c.kind)})
-		hasher.Write([]byte(c.value))
+		if len(*scratchBuffer) < len(c.value) {
+			*scratchBuffer = make([]byte, len(c.value))
+		}
+		for i := range c.value {
+			(*scratchBuffer)[i] = c.value[i]
+		}
+		hasher.Write((*scratchBuffer)[0:len(c.value)])
 	}
 
 	var s []byte

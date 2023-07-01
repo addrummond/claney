@@ -195,7 +195,8 @@ func TestFindSingleGroupDisjuncts(t *testing.T) {
 
 	for _, c := range testCases {
 		n := parseRegexp(c.input)
-		sgds := findSingleGroupDisjuncts(n)
+		scratchBuffer := make([]byte, 0)
+		sgds := findSingleGroupDisjuncts(n, &scratchBuffer)
 		refactorSingleGroupDisjuncts(sgds)
 		out := renodeToString(n)
 		if out != c.output {
