@@ -13,6 +13,14 @@ type trieNode[Assoc any] struct {
 }
 
 func addToTrie[Assoc any](pool *[]trieNode[Assoc], root *trieNode[Assoc], s string, assoc Assoc) {
+	getNode := func() *trieNode[Assoc] {
+		if cap(*pool) <= len(*pool) {
+			*pool = make([]trieNode[Assoc], 0, cap(*pool)*2)
+		}
+		*pool = append(*pool, trieNode[Assoc]{})
+		return &((*pool)[len(*pool)-1])
+	}
+
 	if len(s) == 0 {
 		root.isWord = true
 	}
@@ -23,8 +31,8 @@ func addToTrie[Assoc any](pool *[]trieNode[Assoc], root *trieNode[Assoc], s stri
 		}
 		child, ok := root.children[b]
 		if !ok {
-			*pool = append(*pool, trieNode[Assoc]{b, make(map[byte]*trieNode[Assoc]), []Assoc{}, false})
-			child = &(*pool)[len(*pool)-1]
+			child = getNode()
+			child.c = b
 			root.children[b] = child
 		}
 		child.isWord = child.isWord || (i+1 == len(s))
