@@ -11,7 +11,8 @@ but it has not yet been used in anger.**
 
 * Guarantees that no two routes overlap.
 * Routes can be tagged and output can be limited to routes with a given tag.
-* Routing requires only two regular expression operations: a find/replace followed by a match.
+* Routing requires only two regular expression operations: a find/replace
+  followed by a match.
 
 ## Opinions
 
