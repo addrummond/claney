@@ -316,7 +316,7 @@ Routing is a two-step process. The first step is a find/replace  using a single
 'God' regular expression that matches valid routes. The result of the
 find/replace is a string containing all of the constant portions of the input
 route. For example, if the route is something like `/manager/10/settings`, then
-the constant portion would be `/manager/settings`. In most cases, the constant
+the constant portion would be `/manager//settings`. In most cases, the constant
 portion uniquely identifies a route; if so, a dictionary lookup is performed to
 retrieve a regex for matching the route string and extracting its parameter
 values. If multiple routes share the same constant portion then the matching
