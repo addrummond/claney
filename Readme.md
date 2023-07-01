@@ -154,7 +154,8 @@ Named parameters are introduced using the `:` character. Named parameters
 
 #### String parameters
 
-These can be written `:foo`, or `:{foo bar}` to allow whitespace and other special characters.
+These can be written `:foo`, or `:{foo bar}` to allow whitespace and other
+special characters.
 
 #### Integer parameters
 
