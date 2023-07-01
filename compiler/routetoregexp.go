@@ -473,7 +473,11 @@ func familiesByConstantPortion(routes []RouteInfo) []familyWithConstantPortion {
 func GetRouteRegexps(routes []RouteInfo) routeRegexps {
 	tree := getConstantPortionTree(routes)
 	optimizeConstantPortionTree(tree)
-	constantPortionRegexp := getConstantPortionRegexp(tree)
+	originalConstantPortionRegexp := getConstantPortionRegexp(tree)
+	parsedConstantPortionRegexp := parseRegexp(originalConstantPortionRegexp)
+	sgds := findSingleGroupDisjuncts(parsedConstantPortionRegexp)
+	refactorSingleGroupDisjuncts(sgds)
+	constantPortionRegexp := renodeToString(parsedConstantPortionRegexp)
 
 	byCp := familiesByConstantPortion(routes)
 	families := make([]routeFamily, 0)
@@ -928,52 +932,89 @@ func getConstantPortionRegexp(tree *cpNode) string {
 	var sb strings.Builder
 	sb.WriteString("(?:\\/+(?:")
 
-	var rec func(*cpNode)
-	rec = func(n *cpNode) {
+	var rec func(*cpNode, bool)
+	rec = func(n *cpNode, addTerm bool) {
 		if n == nil {
 			return
+		}
+
+		commonTerm := "X"
+		for _, c := range n.children {
+			if !addTerm || n.routeInfo != nil && !n.routeInfo.terminal {
+				break
+			}
+			if c == nil {
+				continue
+			}
+
+			if c.routeInfo == nil || !c.routeInfo.terminal || isJustSlash(c.routeInfo) {
+				commonTerm = "X"
+				break
+			}
+
+			if commonTerm == "X" {
+				commonTerm = routeTerm(c.routeInfo)
+			} else if commonTerm != routeTerm(c.routeInfo) {
+				commonTerm = "X"
+				break
+			}
+		}
+		if commonTerm != "X" {
+			addTerm = false
+			sb.WriteString("(?:")
 		}
 
 		if n.factorChar != 0 {
 			sb.WriteString("(?:(")
 			regexEscape(string(n.factorChar), &sb)
 			sb.WriteString(")(?:")
-			for i, c := range n.children {
+			i := 0
+			for _, c := range n.children {
 				if c == nil {
 					continue
 				}
 				if i != 0 {
 					sb.WriteByte('|')
 				}
-				rec(c)
+				rec(c, addTerm)
+				i++
 			}
 			sb.WriteString("))")
-			return
-		}
-
-		cpre := n.routeInfo.constantPortionRegexp(n.leftOffset)
-		sb.WriteString(cpre)
-		if len(n.children) == 0 {
-			if n.routeInfo.terminal {
-				sb.WriteString(routeTerm(n.routeInfo))
-			}
 		} else {
-			sb.WriteString("(?:")
-			if n.routeInfo.terminal {
-				sb.WriteString(routeTerm(n.routeInfo))
-				sb.WriteByte('|')
-			}
-			if !isJustSlash(n.routeInfo) {
-				sb.WriteString("(\\/)\\/*")
-			}
-			sb.WriteString("(?:")
-			for i, c := range n.children {
-				if i != 0 {
+			cpre := n.routeInfo.constantPortionRegexp(n.leftOffset)
+			sb.WriteString(cpre)
+			if len(n.children) == 0 {
+				if n.routeInfo.terminal && addTerm {
+					sb.WriteString(routeTerm(n.routeInfo))
+				}
+			} else {
+				sb.WriteString("(?:")
+				if n.routeInfo.terminal && addTerm {
+					sb.WriteString(routeTerm(n.routeInfo))
 					sb.WriteByte('|')
 				}
-				rec(c)
+				if !isJustSlash(n.routeInfo) {
+					sb.WriteString("(\\/)\\/*")
+				}
+				sb.WriteString("(?:")
+				i := 0
+				for _, c := range n.children {
+					if c == nil {
+						continue
+					}
+					if i != 0 {
+						sb.WriteByte('|')
+					}
+					rec(c, addTerm)
+					i++
+				}
+				sb.WriteString("))")
 			}
-			sb.WriteString("))")
+		}
+
+		if commonTerm != "X" {
+			sb.WriteByte(')')
+			sb.WriteString(commonTerm)
 		}
 	}
 
@@ -984,7 +1025,7 @@ func getConstantPortionRegexp(tree *cpNode) string {
 		if i != 0 {
 			sb.WriteByte('|')
 		}
-		rec(c)
+		rec(c, true)
 	}
 
 	sb.WriteString("))")
