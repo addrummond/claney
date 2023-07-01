@@ -146,12 +146,11 @@ name while making it difficult to accidentally define duplicate route names.
 
 ### Named parameters
 
-Named parameters are introduced using the `:` character. Some general facts about named parameters:
+Named parameters are introduced using the `:` character. Named parameters
 
-* Parameters never match empty strings or strings consisting only of `/`
-  characters.
-* A parameter can appear anywhere within a URL pattern.
-* Parameters are matched greedily except in the case of rest parameters (see below).
+* never match empty strings or strings consisting only of `/` characters,
+* can appear anywhere within a URL pattern, and
+* are matched greedily except in the case of rest parameters (see below).
 
 #### String parameters
 
