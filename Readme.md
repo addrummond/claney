@@ -20,7 +20,8 @@ Claney has some opinions about routes:
 
 * Valid routes must start with `/`.
 * A sequence of two or more `/` characters is equivalent to a single `/`.
-* Query strings and anchors contain supplemental information and aren't used to distinguish between different routes.
+* Query strings and anchors contain supplemental information and aren't used to
+  distinguish between different routes.
 * No special treatment of `#!` anchors.
 
 ## Limitations
