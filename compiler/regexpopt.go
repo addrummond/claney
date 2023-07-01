@@ -247,11 +247,18 @@ func groupChildTrailingHash(child *renode) string {
 }
 
 func refactorSingleGroupDisjuncts(sgds []singleGroupDisjunct) {
-	// not bothering with pool allocator for renodes here as number of allocations
-	// should be small
+	renodePool := make([]renode, 8)
+
+	getRenode := func(kind renodeKind, value string, children []*renode) *renode {
+		if len(renodePool) == cap(renodePool) {
+			renodePool = make([]renode, 0, len(renodePool)*2)
+		}
+		renodePool = append(renodePool, renode{kind, value, children})
+		return &renodePool[len(renodePool)-1]
+	}
 
 	for _, sgd := range sgds {
-		disjNsgs := &renode{kind: disjunction, value: "", children: sgd.nsgs}
+		disjNsgs := getRenode(disjunction, "", sgd.nsgs)
 
 		sgd.n.kind = disjunction
 		sgd.n.value = ""
@@ -261,13 +268,13 @@ func refactorSingleGroupDisjuncts(sgds []singleGroupDisjunct) {
 		for _, k := range sgd.sgsByHashKeys {
 			sgs := sgd.sgsByHash[k]
 
-			disjSgs := &renode{kind: disjunction, value: "", children: sgs}
-			group := &renode{kind: group, value: "", children: []*renode{disjSgs}}
+			disjSgs := getRenode(disjunction, "", sgs)
+			group := getRenode(group, "", []*renode{disjSgs})
 
 			if len(sgs[0].children) == 1 {
 				sgd.n.children = append(sgd.n.children, group)
 			} else {
-				seq := &renode{kind: seq, value: "", children: []*renode{group}}
+				seq := getRenode(seq, "", []*renode{group})
 				seq.children = append(seq.children, sgs[0].children[1:]...)
 				sgd.n.children = append(sgd.n.children, seq)
 			}
