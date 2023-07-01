@@ -374,7 +374,7 @@ On an M1 Macbook Air, the following times per routing operation are observed:
 10000: 0.0164  milliseconds
 ```
 
-# Decomposing routers
+## Decomposing routers
 
 Claney does not provide any special facilty for 'including' one router inside
 another, but it is easy to use rest parameters to decompose one router into
