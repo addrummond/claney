@@ -475,8 +475,8 @@ func GetRouteRegexps(routes []RouteInfo) routeRegexps {
 	optimizeConstantPortionTree(tree)
 	originalConstantPortionRegexp := getConstantPortionRegexp(tree)
 	parsedConstantPortionRegexp := parseRegexp(originalConstantPortionRegexp)
-	scratchBuffer := make([]byte, 128)
-	sgds := findSingleGroupDisjuncts(parsedConstantPortionRegexp, &scratchBuffer)
+	scratchBuffer := make([]byte, 64)
+	sgds := findSingleGroupDisjuncts(parsedConstantPortionRegexp, scratchBuffer)
 	refactorSingleGroupDisjuncts(sgds)
 	constantPortionRegexp := renodeToString(parsedConstantPortionRegexp)
 

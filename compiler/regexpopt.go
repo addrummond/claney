@@ -1,7 +1,6 @@
 package compiler
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"strings"
 )
@@ -163,13 +162,13 @@ func renodeToString(n *renode) string {
 }
 
 type singleGroupDisjunct struct {
-	n             *renode
-	sgsByHash     map[string][]*renode
-	sgsByHashKeys []string // for above hash, for determinism
-	nsgs          []*renode
+	n                 *renode
+	sgsByTrailing     map[string][]*renode
+	sgsByTrailingKeys []string // for above map, for determinism
+	nsgs              []*renode
 }
 
-func findSingleGroupDisjunctsHelper(n *renode, accum *[]singleGroupDisjunct, scratchBuffer *[]byte) {
+func findSingleGroupDisjunctsHelper(n *renode, accum *[]singleGroupDisjunct, scratchBuffer []byte) {
 	if n.kind == disjunction {
 		groupCount := 0
 		for _, c := range n.children {
@@ -179,25 +178,25 @@ func findSingleGroupDisjunctsHelper(n *renode, accum *[]singleGroupDisjunct, scr
 		}
 
 		if groupCount >= 3 {
-			sgsByHash := make(map[string][]*renode)
-			sgsByHashKeys := make([]string, 0)
+			sgsByTrailing := make(map[string][]*renode)
+			sgsByTrailingKeys := make([]string, 0)
 			var nsgs []*renode
 			for _, c := range n.children {
 				if isGroupChild(c) {
-					hash := groupChildTrailingHash(c, scratchBuffer)
-					if hash == "" {
+					trailing, ok := groupChildTrailing(c, scratchBuffer)
+					if !ok {
 						nsgs = append(nsgs, c)
 					} else {
-						if _, ok := sgsByHash[hash]; !ok {
-							sgsByHashKeys = append(sgsByHashKeys, hash)
+						if _, ok := sgsByTrailing[trailing]; !ok {
+							sgsByTrailingKeys = append(sgsByTrailingKeys, trailing)
 						}
-						sgsByHash[hash] = append(sgsByHash[hash], c)
+						sgsByTrailing[trailing] = append(sgsByTrailing[trailing], c)
 					}
 				} else {
 					nsgs = append(nsgs, c)
 				}
 			}
-			*accum = append(*accum, singleGroupDisjunct{n, sgsByHash, sgsByHashKeys, nsgs})
+			*accum = append(*accum, singleGroupDisjunct{n, sgsByTrailing, sgsByTrailingKeys, nsgs})
 		}
 	}
 
@@ -206,7 +205,7 @@ func findSingleGroupDisjunctsHelper(n *renode, accum *[]singleGroupDisjunct, scr
 	}
 }
 
-func findSingleGroupDisjuncts(n *renode, scratchBuffer *[]byte) []singleGroupDisjunct {
+func findSingleGroupDisjuncts(n *renode, scratchBuffer []byte) []singleGroupDisjunct {
 	var accum []singleGroupDisjunct
 	findSingleGroupDisjunctsHelper(n, &accum, scratchBuffer)
 	return accum
@@ -224,31 +223,25 @@ func isGroupChild(child *renode) bool {
 	return false
 }
 
-func groupChildTrailingHash(child *renode, scratchBuffer *[]byte) string {
+func groupChildTrailing(child *renode, scratchBuffer []byte) (string, bool) {
 	if len(child.children) > 4 {
-		return ""
+		return "", false
 	}
 
-	hasher := sha256.New()
-
+	bufi := 0
 	for i := 1; i < len(child.children); i++ {
 		c := child.children[i]
 		if c.kind != seq {
-			return ""
+			return "", false
 		}
-		hasher.Write([]byte{byte(c.kind)})
-		if len(*scratchBuffer) < len(c.value) {
-			*scratchBuffer = make([]byte, len(c.value))
+		if len(scratchBuffer)-bufi < len(c.value) {
+			return "", false
 		}
-		for i := range c.value {
-			(*scratchBuffer)[i] = c.value[i]
-		}
-		hasher.Write((*scratchBuffer)[0:len(c.value)])
+		copy(scratchBuffer[bufi:], c.value)
+		bufi += len(c.value)
 	}
 
-	var s []byte
-	s = hasher.Sum(s)
-	return string(s)
+	return string(scratchBuffer[:bufi]), true
 }
 
 func refactorSingleGroupDisjuncts(sgds []singleGroupDisjunct) {
@@ -270,8 +263,8 @@ func refactorSingleGroupDisjuncts(sgds []singleGroupDisjunct) {
 
 		sgd.n.children = []*renode{}
 
-		for _, k := range sgd.sgsByHashKeys {
-			sgs := sgd.sgsByHash[k]
+		for _, k := range sgd.sgsByTrailingKeys {
+			sgs := sgd.sgsByTrailing[k]
 
 			disjSgs := getRenode(disjunction, "", sgs)
 			group := getRenode(group, "", []*renode{disjSgs})
@@ -289,7 +282,7 @@ func refactorSingleGroupDisjuncts(sgds []singleGroupDisjunct) {
 			sgd.n.children = append(sgd.n.children, disjNsgs)
 		}
 
-		for _, sgs := range sgd.sgsByHash {
+		for _, sgs := range sgd.sgsByTrailing {
 			for i := range sgs {
 				sgs[i] = sgs[i].children[0].children[0]
 			}

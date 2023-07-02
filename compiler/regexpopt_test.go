@@ -195,12 +195,56 @@ func TestFindSingleGroupDisjuncts(t *testing.T) {
 
 	for _, c := range testCases {
 		n := parseRegexp(c.input)
-		scratchBuffer := make([]byte, 0)
-		sgds := findSingleGroupDisjuncts(n, &scratchBuffer)
+		scratchBuffer := make([]byte, 64)
+		sgds := findSingleGroupDisjuncts(n, scratchBuffer)
 		refactorSingleGroupDisjuncts(sgds)
 		out := renodeToString(n)
 		if out != c.output {
 			t.Errorf("Expected %v to go to %v, got %v\n", c.input, c.output, out)
+		}
+	}
+}
+
+func TestFindSingleGroupDisjunctsWorksOkIfBufferTooShort(t *testing.T) {
+	type tst struct {
+		input, output string
+	}
+
+	testCases := []tst{
+		{"(foo)x|(bar)x|(amp)x", "(foo|bar|amp)x"},
+		{"(foo)xx|(bar)xx|(amp)xx", "(foo)xx|(bar)xx|(amp)xx"},
+	}
+
+	for _, c := range testCases {
+		n := parseRegexp(c.input)
+		scratchBuffer := make([]byte, 1)
+		sgds := findSingleGroupDisjuncts(n, scratchBuffer)
+		refactorSingleGroupDisjuncts(sgds)
+		out := renodeToString(n)
+		if out != c.output {
+			t.Errorf("Short scratch buffer: expected %v to go to %v, got %v\n", c.input, c.output, out)
+		}
+	}
+}
+
+func TestFindSingleGroupDisjunctsWorksOkIfBufferEmpty(t *testing.T) {
+	type tst struct {
+		input, output string
+	}
+
+	testCases := []tst{
+		{"(foo)x|(bar)x|(amp)x", "(foo)x|(bar)x|(amp)x"},
+		{"(foo)xx|(bar)xx|(amp)xx", "(foo)xx|(bar)xx|(amp)xx"},
+	}
+
+	for _, c := range testCases {
+		n := parseRegexp(c.input)
+		scratchBuffer := make([]byte, 0)
+		sgds := findSingleGroupDisjuncts(n, scratchBuffer)
+		refactorSingleGroupDisjuncts(sgds)
+		out := renodeToString(n)
+		if out != c.output {
+			t.Errorf("Empty scratch buffer: expected %v to go to %v, got %v\n", c.input, c.output, out)
 		}
 	}
 }
