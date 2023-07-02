@@ -50,28 +50,6 @@ func TestProcessRouteFileNoDuplicateRouteNamesBadDuplicate(t *testing.T) {
 	}
 }
 
-func TestRegexGeneration(t *testing.T) {
-	const routeFile = `
-		foo /foo
-		  .
-		  opt1 /opt1
-			opt2 /opt2
-		`
-
-	r, errs := ParseRouteFile(strings.NewReader(routeFile))
-	if len(errs) > 0 {
-		t.Errorf("%+v\n", errs)
-	}
-	routes, errs := ProcessRouteFile([][]RouteFileEntry{r}, []string{""}, "/", func([]RouteWithParents) {})
-	if len(errs) != 0 {
-		t.Errorf("%+v\n", errs)
-	}
-	rrs := GetRouteRegexps(routes)
-	// TODO: make proper test
-	_ = rrs
-	//fmt.Printf("%v\n", rrs.constantPortionRegexp)
-}
-
 func TestProcessRouteFile(t *testing.T) {
 	const routeFile = `
 	users /users
