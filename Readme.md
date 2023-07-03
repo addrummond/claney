@@ -356,7 +356,7 @@ There are some edge cases where an invalid route will match the initial 'God'
 regular expression but then fail to match the second regular expression. Routers
 should interpret this scenario as a 404.
 
-## Performance considerations
+## Performance
 
 Claney generates a single disjunctive regex representing the entire set of valid
 routes. Regex engines are generally not well optimized for massively disjunctive
