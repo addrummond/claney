@@ -77,6 +77,9 @@ type RouteResult struct {
 }
 
 func Route(r *Router, url string) (RouteResult, bool) {
+	// Remove this call if you want a case-sensitive router
+	url = normalizeUrl(url)
+
 	cp := r.router.ConstantPortionRegexp.re.ReplaceAllString(url, r.router.Repl)
 	if cp == url {
 		return RouteResult{}, false
@@ -135,4 +138,15 @@ func findGroupIndex(submatches []string, nonParamGroupNumbers []int, nLevels int
 	}
 
 	return gi
+}
+
+func normalizeUrl(url string) string {
+	// The implementation of ToLower already returns the original string in the
+	// case where it contains no upper case chars, so there is no point adding
+	// that optimization manually.
+	q := strings.IndexByte(url, '?')
+	if q == -1 {
+		return strings.ToLower(url)
+	}
+	return strings.ToLower(url[0:q]) + url[q:]
 }

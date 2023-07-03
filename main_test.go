@@ -25,7 +25,7 @@ root /
 
 func TestRunNoTags(t *testing.T) {
 	var outb strings.Builder
-	exitCode := run([]string{""}, "", "", []compiler.IncludeSpec{}, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
+	exitCode := run([]string{""}, "", "", []compiler.IncludeSpec{}, false, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
 	}
@@ -42,7 +42,7 @@ func TestRunNoTags(t *testing.T) {
 
 func TestOutputPrefix(t *testing.T) {
 	var outb strings.Builder
-	exitCode := run([]string{""}, "", "export FOO = ", []compiler.IncludeSpec{}, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
+	exitCode := run([]string{""}, "", "export FOO = ", []compiler.IncludeSpec{}, false, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
 	}
@@ -54,7 +54,7 @@ func TestOutputPrefix(t *testing.T) {
 
 func TestRunExcludeAllTags(t *testing.T) {
 	var outb strings.Builder
-	exitCode := run([]string{""}, "", "", []compiler.IncludeSpec{{Include: false, TagGlob: "man*"}, {Include: false, TagGlob: "ap*"}}, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
+	exitCode := run([]string{""}, "", "", []compiler.IncludeSpec{{Include: false, TagGlob: "man*"}, {Include: false, TagGlob: "ap*"}}, false, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
 	}
@@ -71,7 +71,7 @@ func TestRunExcludeAllTags(t *testing.T) {
 
 func TestRunIncludeOnlySomeTags(t *testing.T) {
 	var outb strings.Builder
-	exitCode := run([]string{""}, "", "", []compiler.IncludeSpec{{Include: true, TagGlob: "ap*"}}, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
+	exitCode := run([]string{""}, "", "", []compiler.IncludeSpec{{Include: true, TagGlob: "ap*"}}, false, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
 	}
@@ -104,7 +104,7 @@ another /good/route
 
 	var outb strings.Builder
 	var consoleOutb strings.Builder
-	exitCode := run([]string{"file1", "file2"}, "", "", []compiler.IncludeSpec{}, false, mockMultifileReader(map[string]string{"file1": file1, "file2": file2}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	exitCode := run([]string{"file1", "file2"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file1": file1, "file2": file2}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
 	}
@@ -122,6 +122,82 @@ another /good/route
 	}
 }
 
+func TestUpperCaseReporting(t *testing.T) {
+	const file = `
+r /
+  route /foo/bar/aMP
+	`
+
+	var outb strings.Builder
+	var consoleOutb strings.Builder
+	exitCode := run([]string{"file"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file": file}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	if exitCode != 1 {
+		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
+	}
+	out := outb.String()
+	if out != "" {
+		t.Errorf("Unexpected output written:\n%v\n", out)
+	}
+
+	consoleOut := consoleOutb.String()
+	const expectedConsoleOut = "file line 3 col 19: upper case character in route\n"
+
+	if consoleOut != expectedConsoleOut {
+		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
+	}
+}
+
+func TestUpperCaseReportingAllowUpperCase(t *testing.T) {
+	const file = `
+r /
+  route /foo/bar/aMP
+	`
+
+	var outb strings.Builder
+	var consoleOutb strings.Builder
+	exitCode := run([]string{"file"}, "", "", []compiler.IncludeSpec{}, false, true, mockMultifileReader(map[string]string{"file": file}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	if exitCode != 0 {
+		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
+	}
+	out := outb.String()
+	if out != `{"constantPortionNGroups":5,"constantPortionRegexp":"^(?:\\/+(?:(?:(?:(foo)(\\/)\\/*(bar)(\\/)\\/*(aMP)\\/*))))(?:\\?[^#]*)?(?:#.*)?$","families":{"foo/bar/aMP":{"matchRegexp":"^(?:(\\/+foo\\/+bar\\/+aMP\\/*))(\\?[^#]*)?(#.*)?$","nLevels":1,"nonparamGroupNumbers":[1],"members":[{"name":"r/route","paramGroupNumbers":{},"tags":[],"methods":["GET"]}]}}}` {
+		t.Errorf("Unexpected output written:\n%v\n", out)
+	}
+
+	consoleOut := consoleOutb.String()
+	const expectedConsoleOut = "\n1 route written to stdout\n"
+
+	if consoleOut != expectedConsoleOut {
+		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
+	}
+}
+
+func TestUpperCaseReportingSplitLine(t *testing.T) {
+	const file = `
+r /
+  route /foo/\
+    bar/aMP
+	`
+
+	var outb strings.Builder
+	var consoleOutb strings.Builder
+	exitCode := run([]string{"file"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file": file}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	if exitCode != 1 {
+		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
+	}
+	out := outb.String()
+	if out != "" {
+		t.Errorf("Unexpected output written:\n%v\n", out)
+	}
+
+	consoleOut := consoleOutb.String()
+	const expectedConsoleOut = "file line 4 col 10: upper case character in route\n"
+
+	if consoleOut != expectedConsoleOut {
+		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
+	}
+}
+
 func TestOverlapErrorReportingSimpleCase(t *testing.T) {
 	const file1 = "aroute /foo/bar\n"
 	const file2 = "broute /afoo/bar\n"
@@ -133,7 +209,7 @@ func TestOverlapErrorReportingSimpleCase(t *testing.T) {
 
 	var outb strings.Builder
 	var consoleOutb strings.Builder
-	exitCode := run([]string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"}, "", "", []compiler.IncludeSpec{}, false, mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	exitCode := run([]string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
 	}
@@ -161,7 +237,7 @@ func TestOverlapErrorReportingMultiline(t *testing.T) {
 
 	var outb strings.Builder
 	var consoleOutb strings.Builder
-	exitCode := run([]string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"}, "", "", []compiler.IncludeSpec{}, false, mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	exitCode := run([]string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
 	}

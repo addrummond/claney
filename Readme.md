@@ -247,6 +247,16 @@ in another. In other words, given the following two input files, the router reco
     /bar
 ```
 
+### Case sensitivity
+
+By default Claney operates in case-insensitive mode. Routes must be defined
+using only lower case characters, and the example router implementations
+normalize routes to lower case before matching (excluding the query string).
+
+If you want your router to be case-sensitive, pass the `-allow-upper-case` flag
+to `claney` and modify your router implementation(s) to remove the normalisation
+step.
+
 ### Filtering the output
 
 The output may be filtered to include or exclude routes with certain methods or

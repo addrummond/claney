@@ -82,6 +82,8 @@ func TestRouter(t *testing.T) {
 		assertRoute(t, router, "/managers/foo/bar/123?with=aquery&string=foo", "managers/test2", map[string]string{"maguffin": "123"}, "?with=aquery&string=foo", "", []string{"GET"}, []string{"a tag to inherit"})
 		assertRoute(t, router, "/foo.xxxx123x#foo?q=a&boo=c", "dupl/d", map[string]string{"param": "123"}, "", "#foo?q=a&boo=c", []string{"GET"}, []string{})
 		assertRoute(t, router, "/foo.xxxxx123?q=a#foo", "dupl/e", map[string]string{"param": "123"}, "?q=a", "#foo", []string{"GET"}, []string{})
+
+		assertRoute(t, router, "/MaNaGeRs/?foO=BaR", "managers", map[string]string{}, "?foO=BaR", "", []string{"GET"}, []string{"a tag to inherit"})
 	})
 }
 
@@ -237,7 +239,7 @@ func makeBSRoute(i, n int, param string) string {
 }
 
 func testRouter(t *testing.T, routeFile string, callback func(*Router)) {
-	entries, errors := compiler.ParseRouteFile(strings.NewReader(routeFile))
+	entries, errors := compiler.ParseRouteFile(strings.NewReader(routeFile), compiler.DisallowUpperCase)
 	if len(errors) > 0 {
 		t.Errorf("Errors parsing route file: %+v\n", errors)
 	}
@@ -303,7 +305,7 @@ func benchmarkRouterSimpleRoutes(b *testing.B, nRoutes int) {
 		sb.WriteString(fmt.Sprintf("%vfoo /%vfoo\n", i, i))
 	}
 	routeFile := sb.String()
-	entries, errors := compiler.ParseRouteFile(strings.NewReader(routeFile))
+	entries, errors := compiler.ParseRouteFile(strings.NewReader(routeFile), compiler.DisallowUpperCase)
 	if len(errors) > 0 {
 		b.Errorf("Errors parsing route file: %+v\n", errors)
 	}

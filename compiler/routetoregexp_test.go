@@ -11,7 +11,7 @@ import (
 
 func TestRouteToRegexp(t *testing.T) {
 	ri := routeToRegexps(parseRoute("/foo/:bar/amp"))
-	if !(reflect.DeepEqual(ri.elems, []routeElement{{constant, "foo"}, {slash, ""}, {parameter, "bar"}, {slash, ""}, {constant, "amp"}}) &&
+	if !(reflect.DeepEqual(ri.elems, []routeElement{{constant, "foo", 1}, {slash, "", 4}, {parameter, "bar", 5}, {slash, "", 9}, {constant, "amp", 10}}) &&
 		ri.constantPortion == "foo//amp" && ri.nGroups == 1 &&
 		reflect.DeepEqual(ri.paramGroupNumbers, map[string]int{"bar": 1})) {
 		t.Errorf("Unexpected return value of routeToRegexps: %+v\n", ri)
@@ -20,7 +20,7 @@ func TestRouteToRegexp(t *testing.T) {
 
 func TestProcessRouteFileNoDuplicateRouteNamesOkCase(t *testing.T) {
 	const routeFile = "a /foo\na /foo/:param\n\n\na /foo/bar/amp"
-	r, errs := ParseRouteFile(strings.NewReader(routeFile))
+	r, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errs) > 0 {
 		t.Errorf("%+v\n", errs)
 	}
@@ -32,7 +32,7 @@ func TestProcessRouteFileNoDuplicateRouteNamesOkCase(t *testing.T) {
 
 func TestProcessRouteFileNoDuplicateRouteNamesBadDuplicate(t *testing.T) {
 	const routeFile = "a /foo\na /foo/:param\notra /zzz/foo\n\na /foo/bar/amp"
-	r, errs := ParseRouteFile(strings.NewReader(routeFile))
+	r, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errs) > 0 {
 		t.Errorf("%+v\n", errs)
 	}
@@ -77,7 +77,7 @@ func TestProcessRouteFile(t *testing.T) {
 		e /f/oobar/:param
 	`
 
-	r, errs := ParseRouteFile(strings.NewReader(routeFile))
+	r, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errs) > 0 {
 		t.Errorf("%+v\n", errs)
 	}
@@ -666,14 +666,14 @@ func TestDisjoinRegexpComplex(t *testing.T) {
 }
 
 func TestRouteMatching(t *testing.T) {
-	sl := routeElement{slash, ""}
-	glob := routeElement{singleGlob, ""}
-	dglob := routeElement{doubleGlob, ""}
-	noslash := routeElement{noTrailingSlash, ""}
-	c := func(s string) routeElement { return routeElement{constant, s} }
-	p := func(s string) routeElement { return routeElement{parameter, s} }
-	ip := func(s string) routeElement { return routeElement{integerParameter, s} }
-	rp := func(s string) routeElement { return routeElement{restParameter, s} }
+	sl := routeElement{slash, "", 0}
+	glob := routeElement{singleGlob, "", 0}
+	dglob := routeElement{doubleGlob, "", 0}
+	noslash := routeElement{noTrailingSlash, "", 0}
+	c := func(s string) routeElement { return routeElement{constant, s, 0} }
+	p := func(s string) routeElement { return routeElement{parameter, s, 0} }
+	ip := func(s string) routeElement { return routeElement{integerParameter, s, 0} }
+	rp := func(s string) routeElement { return routeElement{restParameter, s, 0} }
 
 	// Initial slash is not included in the raw regexps but is introduced when
 	// joining hierarchical routes, so there are no leading slashes in the
@@ -925,7 +925,7 @@ func makeSimpleRouteWithParents(regexp, name string, parents []*RouteInfo) *Rout
 }
 
 func assertOverlap(t *testing.T, line1, line2 int, routeFile string) {
-	entries, errors := ParseRouteFile(strings.NewReader(routeFile))
+	entries, errors := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errors) > 0 {
 		t.Errorf("Errors parsing route file: %+v\nRoutes:\n%v\n", errors, routeFile)
 		return
@@ -945,7 +945,7 @@ func assertOverlap(t *testing.T, line1, line2 int, routeFile string) {
 }
 
 func assertNoOverlap(t *testing.T, routeFile string) {
-	entries, errors := ParseRouteFile(strings.NewReader(routeFile))
+	entries, errors := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errors) > 0 {
 		t.Errorf("Errors parsing route file: %+v\nRoutes:\n%v\n", errors, routeFile)
 	}

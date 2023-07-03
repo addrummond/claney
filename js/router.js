@@ -10,6 +10,9 @@ export class Router {
   }
 
   route(url) {
+    // Remove this call if you want a case-sensitive router
+    url = normalizeUrl(url)
+
     const m = url.match(this.cpr);
     if (m === null)
       return null;
@@ -66,4 +69,11 @@ export class Router {
 
     return gi;
   }
+}
+
+function normalizeUrl(url) {
+  const q = url.indexOf('?')
+  if (q === -1)
+    return url.toLowerCase();
+  return url.substring(0, q).toLowerCase() + url.substring(q)
 }

@@ -172,4 +172,13 @@ test('yields expected results for various routes', () => {
     anchor: "#foo",
     tags: []
   });
+
+  expect(router.route("/MaNaGeRs/123/Home/?foO=BaR")).toEqual({
+    name: "managers/home",
+    methods: ["GET"],
+    params: {manager_id: "123"},
+    query: "?foO=BaR",
+    anchor: "",
+    tags: ["a tag to inherit"]
+  });
 });

@@ -58,6 +58,7 @@ func (ia *inputAccum) Set(s string) error {
 
 func main() {
 	verbose := flag.Bool("verbose", false, "print diagnostic information")
+	allowUpperCase := flag.Bool("allow-upper-case", false, "allow upper case characters in routes")
 	nameSeparator := flag.String("name-separator", "", "name separator (default \"/\")")
 	inputFiles := &inputAccum{}
 	flag.Var(inputFiles, "input", "input file (default stdin)")
@@ -92,14 +93,14 @@ func main() {
 		filenames = inputFiles.filenames
 	}
 
-	os.Exit(run(filenames, *output, *outputPrefix, includeSpecs, *verbose, withReader, withWriter, fmt.Fprintf, *nameSeparator))
+	os.Exit(run(filenames, *output, *outputPrefix, includeSpecs, *verbose, *allowUpperCase, withReader, withWriter, fmt.Fprintf, *nameSeparator))
 }
 
-func run(inputFiles []string, output, outputPrefix string, specs []compiler.IncludeSpec, verbose bool, withReader func(string, func(io.Reader)) error, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
+func run(inputFiles []string, output, outputPrefix string, specs []compiler.IncludeSpec, verbose, allowUpperCase bool, withReader func(string, func(io.Reader)) error, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
 	var exitCode int
 
 	err := withReaders([]io.Reader{}, inputFiles, withReader, func(inputReaders []io.Reader) {
-		exitCode = runHelper(inputFiles, inputReaders, output, outputPrefix, specs, verbose, withWriter, fprintf, nameSeparator)
+		exitCode = runHelper(inputFiles, inputReaders, output, outputPrefix, specs, verbose, allowUpperCase, withWriter, fprintf, nameSeparator)
 	})
 
 	if err != nil {
@@ -110,8 +111,13 @@ func run(inputFiles []string, output, outputPrefix string, specs []compiler.Incl
 	return exitCode
 }
 
-func runHelper(inputFiles []string, inputReaders []io.Reader, output, outputPrefix string, specs []compiler.IncludeSpec, verbose bool, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
-	entries, errors := compiler.ParseRouteFiles(inputFiles, inputReaders)
+func runHelper(inputFiles []string, inputReaders []io.Reader, output, outputPrefix string, specs []compiler.IncludeSpec, verbose, allowUpperCase bool, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
+	casePolicy := compiler.DisallowUpperCase
+	if allowUpperCase {
+		casePolicy = compiler.AllowUpperCase
+	}
+
+	entries, errors := compiler.ParseRouteFiles(inputFiles, inputReaders, casePolicy)
 
 	if len(errors) > 0 {
 		sortRouteErrors(errors)
@@ -147,7 +153,7 @@ func runHelper(inputFiles []string, inputReaders []io.Reader, output, outputPref
 				return sorted[i].Filename < sorted[j].Filename
 			})
 			for _, r := range sorted {
-				fprintf(metadataOut, "    %v line %v: %v\n", r.Filename, r.Line, r.Name)
+				fprintf(metadataOut, "    %v line %v %v: %v\n", r.Filename, r.Line, r.Name)
 			}
 		}
 	})

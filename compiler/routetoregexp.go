@@ -309,12 +309,12 @@ func checkNonadjacentNamesakes(terminalLines map[string][]tne, linesWithEntries 
 		sort.Slice(lines, func(i, j int) bool { return lines[i].line < lines[j].line })
 		for i := 0; i < len(lines)-1; i++ {
 			if lines[i].file != lines[i+1].file {
-				errors = append(errors, RouteError{DuplicateRouteName, lines[i].line, name, lines[i+1].line, nil, []string{lines[i].file, lines[i+1].file}})
+				errors = append(errors, RouteError{DuplicateRouteName, lines[i].line, -1, name, lines[i+1].line, nil, []string{lines[i].file, lines[i+1].file}})
 				break
 			}
 			for l := lines[i].line + 1; l < lines[i+1].line; l++ {
 				if _, ok := linesWithEntries[l]; ok {
-					errors = append(errors, RouteError{DuplicateRouteName, lines[i].line, name, lines[i+1].line, nil, []string{lines[i].file}})
+					errors = append(errors, RouteError{DuplicateRouteName, lines[i].line, -1, name, lines[i+1].line, nil, []string{lines[i].file}})
 					break
 				}
 			}
@@ -346,7 +346,7 @@ func checkForOverlaps(grouped [][]RouteWithParents) []RouteError {
 		os := checkForOverlapsWithinGroup(routes)
 
 		for _, o := range os {
-			errors = append(errors, RouteError{OverlappingRoutes, o.route1.Line, "", o.route2.Line, nil, []string{o.route1.Filename, o.route2.Filename}})
+			errors = append(errors, RouteError{OverlappingRoutes, o.route1.Line, -1, "", o.route2.Line, nil, []string{o.route1.Filename, o.route2.Filename}})
 		}
 
 		if len(errors) > maxOverlaps {

@@ -75,22 +75,22 @@ func TestParseRouteFile(t *testing.T) {
 	`
 
 	expected := []RouteFileEntry{
-		{indent: 0, name: "users", pattern: []routeElement{{kind: slash, value: ""}, {kind: constant, value: "users"}}, line: 2, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 3, name: "home", pattern: []routeElement{{kind: slash, value: ""}, {kind: parameter, value: "user_id"}, {kind: slash, value: ""}, {kind: constant, value: "home"}}, line: 4, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 2, name: "profile", pattern: []routeElement{{kind: slash, value: ""}, {kind: parameter, value: "user_id"}, {kind: slash, value: ""}, {kind: constant, value: "profile"}}, line: 5, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 2, name: "orders", pattern: []routeElement{{kind: slash, value: ""}, {kind: parameter, value: "user_id"}, {kind: slash, value: ""}, {kind: constant, value: "orders]"}}, line: 6, terminal: false, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 5, name: "order", pattern: []routeElement{{kind: slash, value: ""}, {kind: parameter, value: "order_id"}}, line: 7, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 0, name: "managers", pattern: []routeElement{{kind: slash, value: ""}, {kind: constant, value: "managers"}}, line: 10, terminal: false, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 3, name: "home page", pattern: []routeElement{{kind: slash, value: ""}, {kind: parameter, value: "manager_id"}, {kind: slash, value: ""}, {kind: constant, value: "home["}}, line: 11, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 2, name: "profile", pattern: []routeElement{{kind: slash, value: ""}, {kind: parameter, value: "manager_id"}, {kind: slash, value: ""}, {kind: constant, value: "profile"}}, line: 12, terminal: true, methods: map[string]struct{}{"POST": {}, "GET": {}}, tags: make(map[string]struct{})},
-		{indent: 2, name: "stats", pattern: []routeElement{{kind: slash, value: ""}, {kind: parameter, value: "manager_id"}, {kind: slash, value: ""}, {kind: constant, value: "stats"}}, line: 13, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 2, name: "orders", pattern: []routeElement{{kind: slash, value: ""}, {kind: constant, value: "orders"}, {kind: slash, value: ""}, {kind: parameter, value: "user_id"}, {kind: slash, value: ""}, {kind: parameter, value: "order_id"}}, line: 15, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 2, name: "test1", pattern: []routeElement{{kind: slash, value: ""}, {kind: constant, value: "foobar"}, {kind: slash, value: ""}, {kind: constant, value: "xyz"}, {kind: slash, value: ""}, {kind: parameter, value: "maguffin"}}, line: 17, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
-		{indent: 2, name: "test2", pattern: []routeElement{{kind: slash, value: ""}, {kind: constant, value: "foo"}, {kind: slash, value: ""}, {kind: constant, value: "bar"}, {kind: slash, value: ""}, {kind: integerParameter, value: "maguffin"}}, line: 18, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: map[string]struct{}{"foo": {}, "bar": {}}},
-		{indent: 2, name: "test3", pattern: []routeElement{{kind: slash, value: ""}, {kind: constant, value: "foo"}, {kind: slash, value: ""}, {kind: constant, value: "bar[foo,bar]"}}, line: 19, terminal: true, methods: map[string]struct{}{"POST": {}}, tags: map[string]struct{}{}},
+		{indent: 0, name: "users", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: constant, value: "users", col: 1}}, line: 2, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 3, name: "home", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "home", col: 10}}, line: 4, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "profile", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "profile", col: 10}}, line: 5, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "orders", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "orders]", col: 10}}, line: 6, terminal: false, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 5, name: "order", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "order_id", col: 1}}, line: 7, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 0, name: "managers", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: constant, value: "managers", col: 1}}, line: 10, terminal: false, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 3, name: "home page", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "manager_id", col: 1}, {kind: slash, value: "", col: 12}, {kind: constant, value: "home[", col: 13}}, line: 11, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "profile", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "manager_id", col: 1}, {kind: slash, value: "", col: 12}, {kind: constant, value: "profile", col: 13}}, line: 12, terminal: true, methods: map[string]struct{}{"POST": {}, "GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "stats", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "manager_id", col: 1}, {kind: slash, value: "", col: 12}, {kind: constant, value: "stats", col: 13}}, line: 13, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "orders", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: constant, value: "orders", col: 1}, {kind: slash, value: "", col: 7}, {kind: parameter, value: "user_id", col: 8}, {kind: slash, value: "", col: 16}, {kind: parameter, value: "order_id", col: 17}}, line: 15, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "test1", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: constant, value: "foobar", col: 1}, {kind: slash, value: "", col: 7}, {kind: constant, value: "xyz", col: 8}, {kind: slash, value: "", col: 11}, {kind: parameter, value: "maguffin", col: 12}}, line: 17, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "test2", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: constant, value: "foo", col: 1}, {kind: slash, value: "", col: 4}, {kind: constant, value: "bar", col: 5}, {kind: slash, value: "", col: 8}, {kind: integerParameter, value: "maguffin", col: 9}}, line: 18, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: map[string]struct{}{"foo": {}, "bar": {}}},
+		{indent: 2, name: "test3", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: constant, value: "foo", col: 1}, {kind: slash, value: "", col: 4}, {kind: constant, value: "bar[foo,bar]", col: 5}}, line: 19, terminal: true, methods: map[string]struct{}{"POST": {}}, tags: map[string]struct{}{}},
 	}
 
-	r, errs := ParseRouteFile(strings.NewReader(routeFile))
+	r, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errs) > 0 {
 		t.Errorf("%+v\n", errs)
 	}
@@ -102,10 +102,26 @@ func TestParseRouteFile(t *testing.T) {
 	}
 }
 
+func TestParseRouteFileUpperCase(t *testing.T) {
+	const routeFile = `
+users /Users
+  foo /FooBarAmp
+`
+	_, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
+	if len(errs) != 2 || errs[0].Line != 2 || errs[0].Kind != UpperCaseCharInRoute || errs[1].Line != 3 || errs[1].Kind != UpperCaseCharInRoute {
+		t.Errorf("Didn't get the errors I expected")
+	}
+
+	_, errs2 := ParseRouteFile(strings.NewReader(routeFile), AllowUpperCase)
+	if len(errs2) != 0 {
+		t.Errorf("Got one or more errors where I expected none")
+	}
+}
+
 func TestParseRouteFileDontAllowUnderintenting(t *testing.T) {
 	const routeFile = " a /foo\nb /bar\n"
 
-	_, errs := ParseRouteFile(strings.NewReader(routeFile))
+	_, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errs) != 1 {
 		t.Errorf("Expecting 1 error, got %v: %+v\n", len(errs), errs)
 		return
@@ -116,10 +132,24 @@ func TestParseRouteFileDontAllowUnderintenting(t *testing.T) {
 	}
 }
 
+func TestParseRouteFileDontAllowUpperCase(t *testing.T) {
+	const routeFile = "r /\n  a /fooBAR"
+
+	_, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
+	if len(errs) != 1 {
+		t.Errorf("Expecting 1 error, got %v: %+v\n", len(errs), errs)
+		return
+	}
+
+	if errs[0].Kind != UpperCaseCharInRoute || errs[0].Line != 2 || errs[0].Col != 9 {
+		t.Errorf("Expected UpperCaseCharInRoute at line 2 col 9, got %+v at line %v col %v\n", errs[0].Kind, errs[0].Line, errs[0].Col)
+	}
+}
+
 func TestParseRouteFileDontAllowUnderintentingNotFooledByBlankLines(t *testing.T) {
 	const routeFile = "   \n    \na /foo\nb /bar\n"
 
-	_, errs := ParseRouteFile(strings.NewReader(routeFile))
+	_, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errs) != 0 {
 		t.Errorf("Expecting no errors, got %v: %+v\n", len(errs), errs)
 	}
@@ -128,7 +158,7 @@ func TestParseRouteFileDontAllowUnderintentingNotFooledByBlankLines(t *testing.T
 func TestParseRouteFileDontAllowMultipleSlashes(t *testing.T) {
 	const routeFile = "a /fooo//bar"
 
-	_, errs := ParseRouteFile(strings.NewReader(routeFile))
+	_, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errs) != 1 {
 		t.Errorf("Expecting 1 error, got %v: %+v\n", len(errs), errs)
 		return
@@ -142,7 +172,7 @@ func TestParseRouteFileDontAllowMultipleSlashes(t *testing.T) {
 func TestParseRouteFileAllowWeirdRouteNames(t *testing.T) {
 	const routeFile = "a:!!dsadasd}]] /fooo/bar"
 
-	_, errs := ParseRouteFile(strings.NewReader(routeFile))
+	_, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errs) != 0 {
 		t.Errorf("Expecting 0 errors, got %v: %+v\n", len(errs), errs)
 		return
@@ -151,7 +181,7 @@ func TestParseRouteFileAllowWeirdRouteNames(t *testing.T) {
 
 func TestParseRouteFileMethodParsing(t *testing.T) {
 	{
-		r, errs := ParseRouteFile(strings.NewReader("foo [GET,POST,PUT] /"))
+		r, errs := ParseRouteFile(strings.NewReader("foo [GET,POST,PUT] /"), DisallowUpperCase)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors [1]: %+v\n", errs)
 		}
@@ -160,7 +190,7 @@ func TestParseRouteFileMethodParsing(t *testing.T) {
 		}
 	}
 	{
-		r, errs := ParseRouteFile(strings.NewReader("foo [ GET , POST , PUT ] /"))
+		r, errs := ParseRouteFile(strings.NewReader("foo [ GET , POST , PUT ] /"), DisallowUpperCase)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors [2]: %+v\n", errs)
 		}
@@ -169,7 +199,7 @@ func TestParseRouteFileMethodParsing(t *testing.T) {
 		}
 	}
 	{
-		r, errs := ParseRouteFile(strings.NewReader("foo [ GET , POST , PUT, ] /"))
+		r, errs := ParseRouteFile(strings.NewReader("foo [ GET , POST , PUT, ] /"), DisallowUpperCase)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors [3]: %+v\n", errs)
 		}
@@ -178,7 +208,7 @@ func TestParseRouteFileMethodParsing(t *testing.T) {
 		}
 	}
 	{
-		r, errs := ParseRouteFile(strings.NewReader("foo [] /"))
+		r, errs := ParseRouteFile(strings.NewReader("foo [] /"), DisallowUpperCase)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors [4]: %+v\n", errs)
 		}
@@ -187,7 +217,7 @@ func TestParseRouteFileMethodParsing(t *testing.T) {
 		}
 	}
 	{
-		r, errs := ParseRouteFile(strings.NewReader("foo [ ] /"))
+		r, errs := ParseRouteFile(strings.NewReader("foo [ ] /"), DisallowUpperCase)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors [5]: %+v\n", errs)
 		}
@@ -196,7 +226,7 @@ func TestParseRouteFileMethodParsing(t *testing.T) {
 		}
 	}
 	{
-		r, errs := ParseRouteFile(strings.NewReader("foo [  ] /"))
+		r, errs := ParseRouteFile(strings.NewReader("foo [  ] /"), DisallowUpperCase)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors [6]: %+v\n", errs)
 		}
@@ -205,7 +235,7 @@ func TestParseRouteFileMethodParsing(t *testing.T) {
 		}
 	}
 	{
-		_, errs := ParseRouteFile(strings.NewReader("foo [GET POST PUT] /"))
+		_, errs := ParseRouteFile(strings.NewReader("foo [GET POST PUT] /"), DisallowUpperCase)
 		if len(errs) != 2 {
 			t.Errorf("Unexpected number of errors [7]: %+v\n", errs)
 		}
@@ -214,19 +244,19 @@ func TestParseRouteFileMethodParsing(t *testing.T) {
 		}
 	}
 	{
-		_, errs := ParseRouteFile(strings.NewReader("foo [GET POST PUT /"))
+		_, errs := ParseRouteFile(strings.NewReader("foo [GET POST PUT /"), DisallowUpperCase)
 		if len(errs) == 0 {
 			t.Errorf("Unexpected number of errors [8]: %+v\n", errs)
 		}
 	}
 	{
-		_, errs := ParseRouteFile(strings.NewReader("foo [GET,POST,PUT /"))
+		_, errs := ParseRouteFile(strings.NewReader("foo [GET,POST,PUT /"), DisallowUpperCase)
 		if len(errs) == 0 {
 			t.Errorf("Unexpected number of errors [9]: %+v\n", errs)
 		}
 	}
 	{
-		_, errs := ParseRouteFile(strings.NewReader("foo [GET,,POST] /"))
+		_, errs := ParseRouteFile(strings.NewReader("foo [GET,,POST] /"), DisallowUpperCase)
 		if len(errs) != 1 {
 			t.Errorf("Unexpected number of errors [10]: %+v\n", errs)
 		}
@@ -266,7 +296,7 @@ func TestParseRouteFileBinaryFuzz(t *testing.T) {
 	buf := make([]byte, 1024)
 	for i := 0; i < 100000; i++ {
 		inp := genRandBinaryInput(r, buf)
-		ParseRouteFile(bytes.NewReader(inp))
+		ParseRouteFile(bytes.NewReader(inp), DisallowUpperCase)
 	}
 }
 
@@ -277,7 +307,7 @@ func TestParseRouteFileTextualFuzz(t *testing.T) {
 	buf := make([]byte, 1024)
 	for i := 0; i < 100000; i++ {
 		inp := genRandTextualInput(r, buf)
-		ParseRouteFile(bytes.NewReader(inp))
+		ParseRouteFile(bytes.NewReader(inp), DisallowUpperCase)
 	}
 }
 
