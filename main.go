@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"sort"
 	"strings"
 
@@ -57,6 +58,7 @@ func (ia *inputAccum) Set(s string) error {
 }
 
 func main() {
+	version := flag.Bool("version", false, "show version information")
 	verbose := flag.Bool("verbose", false, "print diagnostic information")
 	allowUpperCase := flag.Bool("allow-upper-case", false, "allow upper case characters in routes")
 	nameSeparator := flag.String("name-separator", "", "name separator (default \"/\")")
@@ -94,6 +96,7 @@ func main() {
 	}
 
 	os.Exit(run(runParams{
+		version:        *version,
 		inputFiles:     filenames,
 		output:         *output,
 		outputPrefix:   *outputPrefix,
@@ -106,6 +109,7 @@ func main() {
 }
 
 type runParams struct {
+	version        bool
 	inputFiles     []string
 	output         string
 	outputPrefix   string
@@ -120,6 +124,16 @@ type runParams struct {
 
 func run(params runParams) int {
 	var exitCode int
+
+	if params.version {
+		bi, ok := debug.ReadBuildInfo()
+		if !ok || bi.Main.Version == "" {
+			params.fprintf(os.Stdout, "claney version unknown\n")
+			return 0
+		}
+		params.fprintf(os.Stdout, "claney %+v\n", bi.Main.Version)
+		return 0
+	}
 
 	err := withReaders([]io.Reader{}, params.inputFiles, params.withReader, func(inputReaders []io.Reader) {
 		exitCode = runHelper(params, inputReaders)
