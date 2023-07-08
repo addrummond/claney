@@ -128,10 +128,10 @@ func run(params runParams) int {
 	if params.version {
 		bi, ok := debug.ReadBuildInfo()
 		if !ok || bi.Main.Version == "" {
-			params.fprintf(os.Stdout, "claney version unknown\n")
+			_, _ = params.fprintf(os.Stdout, "claney version unknown\n")
 			return 0
 		}
-		params.fprintf(os.Stdout, "claney %+v\n", bi.Main.Version)
+		_, _ = params.fprintf(os.Stdout, "claney %+v\n", bi.Main.Version)
 		return 0
 	}
 
@@ -158,7 +158,7 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 	if len(errors) > 0 {
 		sortRouteErrors(errors)
 		for _, e := range errors {
-			params.fprintf(os.Stderr, "%v\n", e)
+			_, _ = params.fprintf(os.Stderr, "%v\n", e)
 		}
 		return 1
 	}
@@ -172,11 +172,11 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 
 	routes, errors := compiler.ProcessRouteFile(entries, params.inputFiles, params.nameSeparator, func(rwps []compiler.RouteWithParents) {
 		if params.verbose {
-			params.fprintf(metadataOut, "WARNING:\n")
-			params.fprintf(metadataOut, "  Group of %v routes that must be checked pairwise for overlaps.\n", len(rwps))
-			params.fprintf(metadataOut, "  This occurs if the routes lack a unique constant prefix or suffix.\n")
-			params.fprintf(metadataOut, "  Pairwise overlap checks are slow.\n")
-			params.fprintf(metadataOut, "  Routes in group:\n")
+			_, _ = params.fprintf(metadataOut, "WARNING:\n")
+			_, _ = params.fprintf(metadataOut, "  Group of %v routes that must be checked pairwise for overlaps.\n", len(rwps))
+			_, _ = params.fprintf(metadataOut, "  This occurs if the routes lack a unique constant prefix or suffix.\n")
+			_, _ = params.fprintf(metadataOut, "  Pairwise overlap checks are slow.\n")
+			_, _ = params.fprintf(metadataOut, "  Routes in group:\n")
 
 			sorted := make([]*compiler.RouteInfo, len(rwps))
 			for i := range rwps {
@@ -189,7 +189,7 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 				return sorted[i].Filename < sorted[j].Filename
 			})
 			for _, r := range sorted {
-				params.fprintf(metadataOut, "    %v line %v %v: %v\n", r.Filename, r.Line, r.Name)
+				_, _ = params.fprintf(metadataOut, "    %v line %v %v: %v\n", r.Filename, r.Line, r.Name)
 			}
 		}
 	})
@@ -197,7 +197,7 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 	if len(errors) > 0 {
 		sortRouteErrors(errors)
 		for _, e := range errors {
-			params.fprintf(os.Stderr, "%v\n", e)
+			_, _ = params.fprintf(os.Stderr, "%v\n", e)
 		}
 		return 1
 	}
@@ -208,11 +208,11 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 	retCode := 0
 
 	err := params.withWriter(params.output, func(of io.Writer) {
-		io.WriteString(of, params.outputPrefix)
+		_, _ = io.WriteString(of, params.outputPrefix)
 
 		_, err := of.Write(json)
 		if err != nil {
-			params.fprintf(os.Stderr, "%v\n", err)
+			_, _ = params.fprintf(os.Stderr, "%v\n", err)
 			retCode = 1
 			return
 		}
@@ -223,9 +223,9 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 		}
 
 		if params.output == "" {
-			params.fprintf(metadataOut, "\n")
+			_, _ = params.fprintf(metadataOut, "\n")
 		}
-		params.fprintf(metadataOut, "%v %v written to %v\n", nRoutes, routesString, metadataOutDescription)
+		_, _ = params.fprintf(metadataOut, "%v %v written to %v\n", nRoutes, routesString, metadataOutDescription)
 
 		retCode = 0
 	})

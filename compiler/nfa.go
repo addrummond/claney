@@ -447,6 +447,7 @@ func setMask(m *[4]uint64, val byte) {
 	m[i] |= (1 << shift)
 }
 
+//nolint:unused // unused function used for debugging
 func debugPrintNfa(n *node) {
 	i := 1
 	names := make(map[*node]int)
@@ -456,6 +457,7 @@ func debugPrintNfa(n *node) {
 	fmt.Printf("%+v\n", names)
 }
 
+//nolint:unused // unused function used for debugging
 func debugPrintNfaHelper(n *node, names map[*node]int, i *int) {
 	name, ok := names[n]
 	if !ok {
@@ -497,7 +499,7 @@ func debugPrintNfaHelper(n *node, names map[*node]int, i *int) {
 	}
 }
 
-// Inefficient, only used for debugging
+//nolint:unused // function used for debugging
 func maskToLetter(mask *[4]uint64) string {
 	for i := 0; i < 255; i++ {
 		if testMask(mask, byte(i)) {

@@ -1085,6 +1085,7 @@ func getNCaptureGroups(re string) int {
 	return n
 }
 
+//nolint:unused // unused function used for debugging
 func debugPrintCpTree(n *cpNode, indent int) string {
 	if n == nil {
 		return ""
@@ -1093,7 +1094,7 @@ func debugPrintCpTree(n *cpNode, indent int) string {
 	for i := 0; i < indent; i++ {
 		out += "    "
 	}
-	cpre := "_"
+	var cpre string
 	if n.factorChar != 0 {
 		cpre = fmt.Sprintf("%v:", string(n.factorChar))
 	} else if n.routeInfo != nil {
@@ -1111,6 +1112,7 @@ func debugPrintCpTree(n *cpNode, indent int) string {
 	return out
 }
 
+//nolint:unused // unused function used for debugging
 func debugFormatRouteRegexps(rr *routeRegexps) string {
 	out := make([]byte, 0)
 	out = append(out, "constantPortionRegexp="...)
@@ -1128,6 +1130,7 @@ func debugFormatRouteRegexps(rr *routeRegexps) string {
 	return string(out)
 }
 
+//nolint:unused // unused function used for debugging
 func debugFormatRouteInfo(ri *RouteInfo) string {
 	out := make([]byte, 0)
 	out = append(out, "name="...)
@@ -1159,6 +1162,7 @@ func debugFormatRouteInfo(ri *RouteInfo) string {
 	return string(out)
 }
 
+//nolint:unused // unused function used for debugging
 func debugFormatRouteFamily(rf *routeFamily) string {
 	out := make([]byte, 0)
 	out = append(out, "constantPortion="...)
@@ -1176,6 +1180,7 @@ func debugFormatRouteFamily(rf *routeFamily) string {
 	return string(out)
 }
 
+//nolint:unused // unused function used for debugging
 func debugFormatGroupMember(rgm *routeGroupMember) string {
 	out := make([]byte, 0)
 	out = append(out, "name="...)
@@ -1187,10 +1192,12 @@ func debugFormatGroupMember(rgm *routeGroupMember) string {
 	return string(out)
 }
 
+//nolint:unused // unused function used for debugging
 func debugFormatRouteWithParents(rwp *RouteWithParents) string {
 	return debugFormatRouteInfo(rwp.Route)
 }
 
+//nolint:unused // unused function used for debugging
 func debugFormatParamGroupNumbers(pgns map[string]int) string {
 	keys := make([]string, 0)
 	for k := range pgns {
