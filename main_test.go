@@ -25,14 +25,25 @@ root /
 
 func TestRunNoTags(t *testing.T) {
 	var outb strings.Builder
-	exitCode := run([]string{""}, "", "", []compiler.IncludeSpec{}, false, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{""},
+		output:         "",
+		outputPrefix:   "",
+		specs:          []compiler.IncludeSpec{},
+		verbose:        false,
+		allowUpperCase: false,
+		withReader:     mockReader(exampleInput),
+		withWriter:     mockWriter(&outb),
+		fprintf:        dummyFprintf,
+		nameSeparator:  "/",
+	})
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	doc, err := jsonquery.Parse(strings.NewReader(out))
-	if err != nil {
-		t.Errorf("%v", err)
+	if err != nil || doc == nil {
+		t.Errorf("%v %v", doc, err)
 	}
 	names := valuesOf[string](jsonquery.Find(doc, "/families/*/members/*/name"))
 	if !reflect.DeepEqual(names, []string{"root/api", "root/api/getstuff", "root/manager/settings"}) {
@@ -42,7 +53,18 @@ func TestRunNoTags(t *testing.T) {
 
 func TestOutputPrefix(t *testing.T) {
 	var outb strings.Builder
-	exitCode := run([]string{""}, "", "export FOO = ", []compiler.IncludeSpec{}, false, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{""},
+		output:         "",
+		outputPrefix:   "export FOO = ",
+		specs:          []compiler.IncludeSpec{},
+		verbose:        false,
+		allowUpperCase: false,
+		withReader:     mockReader(exampleInput),
+		withWriter:     mockWriter(&outb),
+		fprintf:        dummyFprintf,
+		nameSeparator:  "/",
+	})
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
 	}
@@ -54,7 +76,18 @@ func TestOutputPrefix(t *testing.T) {
 
 func TestRunExcludeAllTags(t *testing.T) {
 	var outb strings.Builder
-	exitCode := run([]string{""}, "", "", []compiler.IncludeSpec{{Include: false, TagGlob: "man*"}, {Include: false, TagGlob: "ap*"}}, false, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{""},
+		output:         "",
+		outputPrefix:   "",
+		specs:          []compiler.IncludeSpec{{Include: false, TagGlob: "man*"}, {Include: false, TagGlob: "ap*"}},
+		verbose:        false,
+		allowUpperCase: false,
+		withReader:     mockReader(exampleInput),
+		withWriter:     mockWriter(&outb),
+		fprintf:        dummyFprintf,
+		nameSeparator:  "/",
+	})
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
 	}
@@ -71,7 +104,18 @@ func TestRunExcludeAllTags(t *testing.T) {
 
 func TestRunIncludeOnlySomeTags(t *testing.T) {
 	var outb strings.Builder
-	exitCode := run([]string{""}, "", "", []compiler.IncludeSpec{{Include: true, TagGlob: "ap*"}}, false, false, mockReader(exampleInput), mockWriter(&outb), dummyFprintf, "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{""},
+		output:         "",
+		outputPrefix:   "",
+		specs:          []compiler.IncludeSpec{{Include: true, TagGlob: "ap*"}},
+		verbose:        false,
+		allowUpperCase: false,
+		withReader:     mockReader(exampleInput),
+		withWriter:     mockWriter(&outb),
+		fprintf:        dummyFprintf,
+		nameSeparator:  "/",
+	})
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
 	}
@@ -104,7 +148,18 @@ another /good/route
 
 	var outb strings.Builder
 	var consoleOutb strings.Builder
-	exitCode := run([]string{"file1", "file2"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file1": file1, "file2": file2}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{"file1", "file2"},
+		output:         "",
+		outputPrefix:   "",
+		specs:          []compiler.IncludeSpec{},
+		verbose:        false,
+		allowUpperCase: false,
+		withReader:     mockMultifileReader(map[string]string{"file1": file1, "file2": file2}),
+		withWriter:     mockWriter(&outb),
+		fprintf:        getAccumFprintf(&consoleOutb),
+		nameSeparator:  "/",
+	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
 	}
@@ -130,7 +185,18 @@ r /
 
 	var outb strings.Builder
 	var consoleOutb strings.Builder
-	exitCode := run([]string{"file"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file": file}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{"file"},
+		output:         "",
+		outputPrefix:   "",
+		specs:          []compiler.IncludeSpec{},
+		verbose:        false,
+		allowUpperCase: false,
+		withReader:     mockMultifileReader(map[string]string{"file": file}),
+		withWriter:     mockWriter(&outb),
+		fprintf:        getAccumFprintf(&consoleOutb),
+		nameSeparator:  "/",
+	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
 	}
@@ -155,7 +221,18 @@ r /
 
 	var outb strings.Builder
 	var consoleOutb strings.Builder
-	exitCode := run([]string{"file"}, "", "", []compiler.IncludeSpec{}, false, true, mockMultifileReader(map[string]string{"file": file}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{"file"},
+		output:         "",
+		outputPrefix:   "",
+		specs:          []compiler.IncludeSpec{},
+		verbose:        false,
+		allowUpperCase: true,
+		withReader:     mockMultifileReader(map[string]string{"file": file}),
+		withWriter:     mockWriter(&outb),
+		fprintf:        getAccumFprintf(&consoleOutb),
+		nameSeparator:  "/",
+	})
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
 	}
@@ -181,7 +258,18 @@ r /
 
 	var outb strings.Builder
 	var consoleOutb strings.Builder
-	exitCode := run([]string{"file"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file": file}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{"file"},
+		output:         "",
+		outputPrefix:   "",
+		specs:          []compiler.IncludeSpec{},
+		verbose:        false,
+		allowUpperCase: false,
+		withReader:     mockMultifileReader(map[string]string{"file": file}),
+		withWriter:     mockWriter(&outb),
+		fprintf:        getAccumFprintf(&consoleOutb),
+		nameSeparator:  "/",
+	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
 	}
@@ -209,7 +297,18 @@ func TestOverlapErrorReportingSimpleCase(t *testing.T) {
 
 	var outb strings.Builder
 	var consoleOutb strings.Builder
-	exitCode := run([]string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"},
+		output:         "",
+		outputPrefix:   "",
+		specs:          []compiler.IncludeSpec{},
+		verbose:        false,
+		allowUpperCase: false,
+		withReader:     mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}),
+		withWriter:     mockWriter(&outb),
+		fprintf:        getAccumFprintf(&consoleOutb),
+		nameSeparator:  "/",
+	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
 	}
@@ -237,7 +336,18 @@ func TestOverlapErrorReportingMultiline(t *testing.T) {
 
 	var outb strings.Builder
 	var consoleOutb strings.Builder
-	exitCode := run([]string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"}, "", "", []compiler.IncludeSpec{}, false, false, mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}), mockWriter(&outb), getAccumFprintf(&consoleOutb), "/")
+	exitCode := run(runParams{
+		inputFiles:     []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"},
+		output:         "",
+		outputPrefix:   "",
+		specs:          []compiler.IncludeSpec{},
+		verbose:        false,
+		allowUpperCase: false,
+		withReader:     mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}),
+		withWriter:     mockWriter(&outb),
+		fprintf:        getAccumFprintf(&consoleOutb),
+		nameSeparator:  "/",
+	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
 	}

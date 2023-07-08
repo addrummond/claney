@@ -93,14 +93,36 @@ func main() {
 		filenames = inputFiles.filenames
 	}
 
-	os.Exit(run(filenames, *output, *outputPrefix, includeSpecs, *verbose, *allowUpperCase, withReader, withWriter, fmt.Fprintf, *nameSeparator))
+	os.Exit(run(runParams{
+		inputFiles:     filenames,
+		output:         *output,
+		outputPrefix:   *outputPrefix,
+		verbose:        *verbose,
+		allowUpperCase: *allowUpperCase,
+		withReader:     withReader,
+		withWriter:     withWriter,
+		fprintf:        fmt.Fprintf,
+		nameSeparator:  *nameSeparator}))
 }
 
-func run(inputFiles []string, output, outputPrefix string, specs []compiler.IncludeSpec, verbose, allowUpperCase bool, withReader func(string, func(io.Reader)) error, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
+type runParams struct {
+	inputFiles     []string
+	output         string
+	outputPrefix   string
+	specs          []compiler.IncludeSpec
+	verbose        bool
+	allowUpperCase bool
+	withReader     func(string, func(io.Reader)) error
+	withWriter     func(string, func(io.Writer)) error
+	fprintf        func(w io.Writer, format string, a ...interface{}) (int, error)
+	nameSeparator  string
+}
+
+func run(params runParams) int {
 	var exitCode int
 
-	err := withReaders([]io.Reader{}, inputFiles, withReader, func(inputReaders []io.Reader) {
-		exitCode = runHelper(inputFiles, inputReaders, output, outputPrefix, specs, verbose, allowUpperCase, withWriter, fprintf, nameSeparator)
+	err := withReaders([]io.Reader{}, params.inputFiles, params.withReader, func(inputReaders []io.Reader) {
+		exitCode = runHelper(params, inputReaders)
 	})
 
 	if err != nil {
@@ -111,36 +133,36 @@ func run(inputFiles []string, output, outputPrefix string, specs []compiler.Incl
 	return exitCode
 }
 
-func runHelper(inputFiles []string, inputReaders []io.Reader, output, outputPrefix string, specs []compiler.IncludeSpec, verbose, allowUpperCase bool, withWriter func(string, func(io.Writer)) error, fprintf func(w io.Writer, format string, a ...interface{}) (int, error), nameSeparator string) int {
+func runHelper(params runParams, inputReaders []io.Reader) int {
 	casePolicy := compiler.DisallowUpperCase
-	if allowUpperCase {
+	if params.allowUpperCase {
 		casePolicy = compiler.AllowUpperCase
 	}
 
-	entries, errors := compiler.ParseRouteFiles(inputFiles, inputReaders, casePolicy)
+	entries, errors := compiler.ParseRouteFiles(params.inputFiles, inputReaders, casePolicy)
 
 	if len(errors) > 0 {
 		sortRouteErrors(errors)
 		for _, e := range errors {
-			fprintf(os.Stderr, "%v\n", e)
+			params.fprintf(os.Stderr, "%v\n", e)
 		}
 		return 1
 	}
 
 	metadataOut := os.Stdout
-	metadataOutDescription := output
-	if output == "" {
+	metadataOutDescription := params.output
+	if params.output == "" {
 		metadataOut = os.Stderr
 		metadataOutDescription = "stdout"
 	}
 
-	routes, errors := compiler.ProcessRouteFile(entries, inputFiles, nameSeparator, func(rwps []compiler.RouteWithParents) {
-		if verbose {
-			fprintf(metadataOut, "WARNING:\n")
-			fprintf(metadataOut, "  Group of %v routes that must be checked pairwise for overlaps.\n", len(rwps))
-			fprintf(metadataOut, "  This occurs if the routes lack a unique constant prefix or suffix.\n")
-			fprintf(metadataOut, "  Pairwise overlap checks are slow.\n")
-			fprintf(metadataOut, "  Routes in group:\n")
+	routes, errors := compiler.ProcessRouteFile(entries, params.inputFiles, params.nameSeparator, func(rwps []compiler.RouteWithParents) {
+		if params.verbose {
+			params.fprintf(metadataOut, "WARNING:\n")
+			params.fprintf(metadataOut, "  Group of %v routes that must be checked pairwise for overlaps.\n", len(rwps))
+			params.fprintf(metadataOut, "  This occurs if the routes lack a unique constant prefix or suffix.\n")
+			params.fprintf(metadataOut, "  Pairwise overlap checks are slow.\n")
+			params.fprintf(metadataOut, "  Routes in group:\n")
 
 			sorted := make([]*compiler.RouteInfo, len(rwps))
 			for i := range rwps {
@@ -153,7 +175,7 @@ func runHelper(inputFiles []string, inputReaders []io.Reader, output, outputPref
 				return sorted[i].Filename < sorted[j].Filename
 			})
 			for _, r := range sorted {
-				fprintf(metadataOut, "    %v line %v %v: %v\n", r.Filename, r.Line, r.Name)
+				params.fprintf(metadataOut, "    %v line %v %v: %v\n", r.Filename, r.Line, r.Name)
 			}
 		}
 	})
@@ -161,22 +183,22 @@ func runHelper(inputFiles []string, inputReaders []io.Reader, output, outputPref
 	if len(errors) > 0 {
 		sortRouteErrors(errors)
 		for _, e := range errors {
-			fprintf(os.Stderr, "%v\n", e)
+			params.fprintf(os.Stderr, "%v\n", e)
 		}
 		return 1
 	}
 
 	routeRegexps := compiler.GetRouteRegexps(routes)
-	json, nRoutes := compiler.RouteRegexpsToJSON(&routeRegexps, specs)
+	json, nRoutes := compiler.RouteRegexpsToJSON(&routeRegexps, params.specs)
 
 	retCode := 0
 
-	err := withWriter(output, func(of io.Writer) {
-		io.WriteString(of, outputPrefix)
+	err := params.withWriter(params.output, func(of io.Writer) {
+		io.WriteString(of, params.outputPrefix)
 
 		_, err := of.Write(json)
 		if err != nil {
-			fprintf(os.Stderr, "%v\n", err)
+			params.fprintf(os.Stderr, "%v\n", err)
 			retCode = 1
 			return
 		}
@@ -186,10 +208,10 @@ func runHelper(inputFiles []string, inputReaders []io.Reader, output, outputPref
 			routesString = "route"
 		}
 
-		if output == "" {
-			fprintf(metadataOut, "\n")
+		if params.output == "" {
+			params.fprintf(metadataOut, "\n")
 		}
-		fprintf(metadataOut, "%v %v written to %v\n", nRoutes, routesString, metadataOutDescription)
+		params.fprintf(metadataOut, "%v %v written to %v\n", nRoutes, routesString, metadataOutDescription)
 
 		retCode = 0
 	})
