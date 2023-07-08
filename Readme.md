@@ -44,7 +44,7 @@ complex interaction between hosts and paths, Claney is probably not a good fit.
 ## Installation and example usage
 
 ```sh
-go install # in main repo dir
+go install github.com/addrummond/claney@v0.4.1
 $(go env GOPATH)/bin/claney -input my_route_file -output routes.json
 ```
 
