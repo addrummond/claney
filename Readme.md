@@ -366,8 +366,8 @@ alternatives.
 
 Claney does a couple of things to make its disjunctive regular expressions
 execute as quickly as possible. First, if routes are specified hierachically in
-the input file, the common prefixes are factored out in the regular expression,
-limiting the amount of backtracking required.
+the input file, the common prefixes are factored out in the regular expression.
+This limits the amount of backtracking required.
 
 Second, in the case of alternatives at the same level of the hierarchy, Claney
 will factor out common prefixes automatically. For example, rather than
