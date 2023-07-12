@@ -380,10 +380,10 @@ performance that can be expected. The input file contains *n* routes of the form
 On an M1 Macbook Air, the following times per routing operation are observed:
 
 ```
-10:    0.0003  milliseconds (per routing operation)
-100:   0.0004  milliseconds
-1000:  0.0019  milliseconds
-10000: 0.0164  milliseconds
+10 routes:    0.0003  milliseconds (per routing operation)
+100 routes:   0.0004  milliseconds
+1000 routes:  0.0019  milliseconds
+10000 routes: 0.0164  milliseconds
 ```
 
 ## Decomposing routers
