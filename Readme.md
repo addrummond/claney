@@ -371,8 +371,8 @@ This limits the amount of backtracking required.
 
 Second, in the case of alternatives at the same level of the hierarchy, Claney
 will factor out common prefixes automatically. For example, rather than
-generating a regular expression such as `apple|artichoke|pear|plum`, it will
-generate `(a(pple|rtichoke))|(p(ear|lum))`.
+generating a regular expression such as `apple|artichoke|pear|plum`, it
+generates `(a(pple|rtichoke))|(p(ear|lum))`.
 
 The Javascript benchmark in `js/router.bench.js` gives a rough idea of the
 performance that can be expected. The input file contains *n* routes of the form
