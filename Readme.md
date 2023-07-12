@@ -443,4 +443,4 @@ necessary to use a server.) The app uses the library in
 
 ## Name
 
-Claney is named after Stephen Cole Kleene (whose last name is pronounced [ˈkleɪni]).
+Claney is named after [Stephen Cole Kleene](https://en.wikipedia.org/wiki/Stephen_Cole_Kleene) (whose last name is pronounced [ˈkleɪni]).
