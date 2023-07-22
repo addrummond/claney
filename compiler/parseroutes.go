@@ -393,20 +393,20 @@ func formatErrorMessage(e RouteError, desc string) string {
 
 	if e.OtherLine == 0 {
 		if e.Col != -1 {
-			msg = fmt.Sprintf("line %v col %v: %v", e.Line, e.Col, desc)
+			msg = fmt.Sprintf("%v:%v: %v", e.Line, e.Col, desc)
 		} else {
-			msg = fmt.Sprintf("line %v: %v", e.Line, desc)
+			msg = fmt.Sprintf("%v: %v", e.Line, desc)
 		}
 		if len(e.Filenames) == 0 || e.Filenames[0] == "" {
-			msg = "stdin " + msg
+			msg = "stdin:" + msg
 		} else {
-			msg = e.Filenames[0] + " " + msg
+			msg = e.Filenames[0] + ":" + msg
 		}
 	} else if e.OtherLine != 0 && len(e.Filenames) == 2 {
-		msg = fmt.Sprintf("(%v line %v; %v line %v): %v", e.Filenames[0], e.Line, e.Filenames[1], e.OtherLine, desc)
+		msg = fmt.Sprintf("%v:%v: (and %v:%v): %v", e.Filenames[0], e.Line, e.Filenames[1], e.OtherLine, desc)
 	} else {
 		// shouldn't get here
-		msg = fmt.Sprintf("(line %v; line %v): %v", e.Line, e.OtherLine, desc)
+		msg = fmt.Sprintf("%v: (and %v): %v", e.Line, e.OtherLine, desc)
 	}
 
 	return msg

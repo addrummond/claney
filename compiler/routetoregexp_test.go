@@ -45,7 +45,7 @@ func TestProcessRouteFileNoDuplicateRouteNamesBadDuplicate(t *testing.T) {
 	if errs[0].Kind != DuplicateRouteName {
 		t.Errorf("Expected IndentLessThanFirstLine, got %+v\n", errs[0].Kind)
 	}
-	if fmt.Sprintf("%v", errs[0]) != "(line 2; line 5): two non-adjacently-nestled routes have the same name ('a'); move them next to each other in the same file" {
+	if fmt.Sprintf("%v", errs[0]) != "2: (and 5): two non-adjacently-nestled routes have the same name ('a'); move them next to each other in the same file" {
 		t.Errorf("Error message not as expected. Got %v\n", errs[0])
 	}
 }

@@ -169,8 +169,8 @@ another /good/route
 	}
 
 	consoleOut := consoleOutb.String()
-	const expectedConsoleOut = "file1 line 3: missing route name or missing route pattern\n" +
-		"file2 line 4: missing route name or missing route pattern\n"
+	const expectedConsoleOut = "file1:3: missing route name or missing route pattern\n" +
+		"file2:4: missing route name or missing route pattern\n"
 
 	if consoleOut != expectedConsoleOut {
 		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
@@ -206,7 +206,7 @@ r /
 	}
 
 	consoleOut := consoleOutb.String()
-	const expectedConsoleOut = "file line 3 col 19: upper case character in route\n"
+	const expectedConsoleOut = "file:3:19: upper case character in route\n"
 
 	if consoleOut != expectedConsoleOut {
 		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
@@ -279,7 +279,7 @@ r /
 	}
 
 	consoleOut := consoleOutb.String()
-	const expectedConsoleOut = "file line 4 col 10: upper case character in route\n"
+	const expectedConsoleOut = "file:4:10: upper case character in route\n"
 
 	if consoleOut != expectedConsoleOut {
 		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
@@ -318,7 +318,7 @@ func TestOverlapErrorReportingSimpleCase(t *testing.T) {
 	}
 
 	consoleOut := consoleOutb.String()
-	const expectedConsoleOut = "(file1 line 1; file5 line 1): routes overlap\n"
+	const expectedConsoleOut = "file1:1: (and file5:1): routes overlap\n"
 
 	if consoleOut != expectedConsoleOut {
 		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
@@ -357,8 +357,8 @@ func TestOverlapErrorReportingMultiline(t *testing.T) {
 	}
 
 	consoleOut := consoleOutb.String()
-	const expectedConsoleOut = "(file1 line 2; file5 line 1): routes overlap\n" +
-		"(file3 line 2; file3 line 3): routes overlap\n"
+	const expectedConsoleOut = "file1:2: (and file5:1): routes overlap\n" +
+		"file3:2: (and file3:3): routes overlap\n"
 
 	if consoleOut != expectedConsoleOut {
 		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)

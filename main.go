@@ -189,7 +189,7 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 				return sorted[i].Filename < sorted[j].Filename
 			})
 			for _, r := range sorted {
-				_, _ = params.fprintf(metadataOut, "    %v line %v %v: %v\n", r.Filename, r.Line, r.Name)
+				_, _ = params.fprintf(metadataOut, "    %v:%v: %v\n", r.Filename, r.Line, r.Name)
 			}
 		}
 	})
