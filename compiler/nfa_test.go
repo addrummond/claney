@@ -122,7 +122,7 @@ func TestFindFirstOverlapBig(t *testing.T) {
 	}
 }
 
-func BenchFindFirstOverlapBigish(b *testing.B) {
+func BenchFindFirstOverlapBig(b *testing.B) {
 	regexps := overlappingNeedleInHaystack(5000)
 	nfa := make([]*node, len(regexps))
 	for i, r := range regexps {
