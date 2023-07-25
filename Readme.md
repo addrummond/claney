@@ -31,7 +31,7 @@ an HTTP method and path string to either 'not found' or
 
 * a name,
 * a set of named parameters,
-* a set of 'tags',
+* a set of tags,
 * an optional query string and anchor.
 
 In other words, Claney just tells you whether the route exists, which route it
