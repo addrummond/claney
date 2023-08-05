@@ -95,6 +95,109 @@ func TestParseRouteFile(t *testing.T) {
 		t.Errorf("%+v\n", errs)
 	}
 
+	if len(expected) != len(r) {
+		t.Errorf("Lengths don't match: %v, %v\n", len(r), len(expected))
+		return
+	}
+	for i := range expected {
+		if !reflect.DeepEqual(expected[i], r[i]) {
+			t.Errorf("At %v.\nExpected\n%v\n\nGot\n%v\n", i, spew.Sdump(expected[i]), spew.Sdump(r[i]))
+		}
+	}
+}
+
+func TestParseRouteFileWindowsLineEndings(t *testing.T) {
+	const routeFile = "" +
+		"users /users\r\n" +
+		"  .\r\n" +
+		"  home    /:user_id/home []\r\n" +
+		"  profile /:user_id/profile[]\r\n" +
+		"  orders  /:user_id/orders]\r\n" +
+		"    order /:order_id"
+
+	expected := []RouteFileEntry{
+		{indent: 0, name: "users", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: constant, value: "users", col: 1}}, line: 1, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "home", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "home", col: 10}}, line: 3, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "profile", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "profile", col: 10}}, line: 4, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "orders", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "orders]", col: 10}}, line: 5, terminal: false, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 4, name: "order", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "order_id", col: 1}}, line: 6, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+	}
+
+	r, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
+	if len(errs) > 0 {
+		t.Errorf("%+v\n", errs)
+	}
+
+	if len(expected) != len(r) {
+		t.Errorf("Lengths don't match: %v, %v\n", len(r), len(expected))
+		return
+	}
+	for i := range expected {
+		if !reflect.DeepEqual(expected[i], r[i]) {
+			t.Errorf("At %v.\nExpected\n%v\n\nGot\n%v\n", i, spew.Sdump(expected[i]), spew.Sdump(r[i]))
+		}
+	}
+}
+
+func TestParseRouteFileUnixLineEndings(t *testing.T) {
+	const routeFile = "" +
+		"users /users\n" +
+		"  .\n" +
+		"  home    /:user_id/home []\n" +
+		"  profile /:user_id/profile[]\n" +
+		"  orders  /:user_id/orders]\n" +
+		"    order /:order_id"
+
+	expected := []RouteFileEntry{
+		{indent: 0, name: "users", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: constant, value: "users", col: 1}}, line: 1, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "home", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "home", col: 10}}, line: 3, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "profile", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "profile", col: 10}}, line: 4, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "orders", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "orders]", col: 10}}, line: 5, terminal: false, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 4, name: "order", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "order_id", col: 1}}, line: 6, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+	}
+
+	r, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
+	if len(errs) > 0 {
+		t.Errorf("%+v\n", errs)
+	}
+
+	if len(expected) != len(r) {
+		t.Errorf("Lengths don't match: %v, %v\n", len(r), len(expected))
+		return
+	}
+	for i := range expected {
+		if !reflect.DeepEqual(expected[i], r[i]) {
+			t.Errorf("At %v.\nExpected\n%v\n\nGot\n%v\n", i, spew.Sdump(expected[i]), spew.Sdump(r[i]))
+		}
+	}
+}
+
+func TestParseRouteFileLeadingAndTrailingWhitespace(t *testing.T) {
+	const routeFile = "   \t \n" +
+		"users /users  \n" +
+		"  .\n" +
+		"  home    /:user_id/home []  \n" +
+		"  profile /:user_id/profile[]    \t\t\n" +
+		"  orders  /:user_id/orders] \n" +
+		"    order /:order_id\n\n    "
+
+	expected := []RouteFileEntry{
+		{indent: 0, name: "users", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: constant, value: "users", col: 1}}, line: 2, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "home", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "home", col: 10}}, line: 4, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "profile", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "profile", col: 10}}, line: 5, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 2, name: "orders", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "user_id", col: 1}, {kind: slash, value: "", col: 9}, {kind: constant, value: "orders]", col: 10}}, line: 6, terminal: false, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+		{indent: 4, name: "order", pattern: []routeElement{{kind: slash, value: "", col: 0}, {kind: parameter, value: "order_id", col: 1}}, line: 7, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: make(map[string]struct{})},
+	}
+
+	r, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
+	if len(errs) > 0 {
+		t.Errorf("%+v\n", errs)
+	}
+
+	if len(expected) != len(r) {
+		t.Errorf("Lengths don't match: %v, %v\n", len(r), len(expected))
+		return
+	}
 	for i := range expected {
 		if !reflect.DeepEqual(expected[i], r[i]) {
 			t.Errorf("At %v.\nExpected\n%v\n\nGot\n%v\n", i, spew.Sdump(expected[i]), spew.Sdump(r[i]))
