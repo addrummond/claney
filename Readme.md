@@ -303,7 +303,7 @@ For simple cases there are two workable options:
 
 * Define a separate router for each host. This makes sense for cases such as
   `foo.com` and `api.foo.com`.
-* Tag each route with the hosts(s) where it is valid.
+* Tag each route with the host(s) where it is valid.
 
 An example of the second option is the following:
 
