@@ -247,17 +247,6 @@ in another. In other words, given the following two input files, the router reco
     /bar
 ```
 
-### Case sensitivity
-
-By default Claney operates in case-insensitive mode. Routes must be defined
-using only lower case characters, and the example router implementations
-normalize URLs to lower case before matching (excluding the query string).
-
-If you want your router to be case-sensitive, pass the `-allow-upper-case` flag
-to `claney` and ensure that to your router implementation dos not normalize URLs
-before matching. The router constructors in the example Go and JavaScript router
-implementations take a boolean `caseSensitive` parameter.
-
 ### Filtering the output
 
 The output may be filtered to include or exclude routes with certain methods or
@@ -322,6 +311,17 @@ claney -input routes -include-tags 'host:host1.foo.com' -output just_host1.json
 claney -input routes -include-tags 'host:host2.foo.com' -output just_host2.json
 claney -input routes -include-tags 'host:*' -output all_hosts.json
 ```
+
+## Case sensitivity
+
+By default Claney operates in case-insensitive mode. Routes must be defined
+using only lower case characters, and the example router implementations
+normalize URLs to lower case before matching (excluding the query string).
+
+If you want your router to be case-sensitive, pass the `-allow-upper-case` flag
+to `claney` and ensure that to your router implementation dos not normalize URLs
+before matching. The router constructors in the example Go and JavaScript router
+implementations take a boolean `caseSensitive` parameter.
 
 ## Implementation
 
