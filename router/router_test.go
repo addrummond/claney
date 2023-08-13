@@ -44,7 +44,7 @@ dupl / # all routes below have the same constant portion
 `
 
 func TestRouter(t *testing.T) {
-	testRouter(t, routeFile, func(router *Router) {
+	testRouter(t, routeFile, false, func(router *Router) {
 		assertNoRoute(t, router, "/")
 		assertNoRoute(t, router, "")
 		assertRoute(t, router, "/users", "users", map[string]string{}, "", "", []string{"GET"}, []string{})
@@ -58,12 +58,12 @@ func TestRouter(t *testing.T) {
 		assertNoRoute(t, router, "/managers")
 		assertRoute(t, router, "/managers/", "managers", map[string]string{}, "", "", []string{"GET"}, []string{"a tag to inherit"})
 		assertRoute(t, router, "/managers/123/home//", "managers/home", map[string]string{"manager_id": "123"}, "", "", []string{"GET"}, []string{"a tag to inherit"})
-		assertRoute(t, router, "/managers/123/profile", "managers/profile", map[string]string{"manager_id": "123"}, "", "", []string{"GET"}, []string{"a tag to inherit"})
+		assertRoute(t, router, "/MANAGERS/123/profile", "managers/profile", map[string]string{"manager_id": "123"}, "", "", []string{"GET"}, []string{"a tag to inherit"})
 		assertRoute(t, router, "/managers/123/stats", "managers/stats", map[string]string{"manager_id": "123"}, "", "", []string{"POST", "PUT"}, []string{"a tag to inherit", "amp", "bar", "foo"})
 		assertRoute(t, router, "/managers/orders/123/456/theorder", "managers/orders", map[string]string{"user_id": "123", "o rder_}\\id": "456"}, "", "", []string{"GET"}, []string{"a tag to inherit", "baz"})
 		assertRoute(t, router, "/managers/foo//goo/bar/123", "managers/test1", map[string]string{"maguffin": "123"}, "", "", []string{"POST"}, []string{"a tag to inherit"})
-		assertRoute(t, router, "/managers/foo/bar/123", "managers/test2", map[string]string{"maguffin": "123"}, "", "", []string{"GET"}, []string{"a tag to inherit"})
-		assertRoute(t, router, "/managers/routeending\\withbackslash\\", "managers/backslash", map[string]string{}, "", "", []string{"GET"}, []string{"a tag to inherit"})
+		assertRoute(t, router, "/managers/Foo/bar/123", "managers/test2", map[string]string{"maguffin": "123"}, "", "", []string{"GET"}, []string{"a tag to inherit"})
+		assertRoute(t, router, "/mAnAgeRs/routeending\\withbackslash\\", "managers/backslash", map[string]string{}, "", "", []string{"GET"}, []string{"a tag to inherit"})
 		assertRoute(t, router, "/managers/foo/blobby/some/other/stuff/bar", "managers/resty", map[string]string{"rest": "some/other/stuff/bar"}, "", "", []string{"GET"}, []string{"a tag to inherit"})
 		assertRoute(t, router, "/managers/fooo/blobby/some/other/stuff/more", "managers/resty", map[string]string{"rest": "some/other/stuff"}, "", "", []string{"GET"}, []string{"a tag to inherit"})
 		assertNoRoute(t, router, "/managers/foo/blobby")
@@ -78,7 +78,7 @@ func TestRouter(t *testing.T) {
 		assertRoute(t, router, "/foo.xxxx123x", "dupl/d", map[string]string{"param": "123"}, "", "", []string{"GET"}, []string{})
 		assertRoute(t, router, "/foo.xxxxx123", "dupl/e", map[string]string{"param": "123"}, "", "", []string{"GET"}, []string{})
 
-		assertRoute(t, router, "/managers/123/profile?with=aquery&string=bar", "managers/profile", map[string]string{"manager_id": "123"}, "?with=aquery&string=bar", "", []string{"GET"}, []string{"a tag to inherit"})
+		assertRoute(t, router, "/managers/123/profile?with=aquery&strinG=BAR", "managers/profile", map[string]string{"manager_id": "123"}, "?with=aquery&strinG=BAR", "", []string{"GET"}, []string{"a tag to inherit"})
 		assertRoute(t, router, "/managers/foo/bar/123?with=aquery&string=foo", "managers/test2", map[string]string{"maguffin": "123"}, "?with=aquery&string=foo", "", []string{"GET"}, []string{"a tag to inherit"})
 		assertRoute(t, router, "/foo.xxxx123x#foo?q=a&boo=c", "dupl/d", map[string]string{"param": "123"}, "", "#foo?q=a&boo=c", []string{"GET"}, []string{})
 		assertRoute(t, router, "/foo.xxxxx123?q=a#foo", "dupl/e", map[string]string{"param": "123"}, "?q=a", "#foo", []string{"GET"}, []string{})
@@ -93,7 +93,7 @@ func TestRouterFinickySlashStuff1(t *testing.T) {
     withslash /
 	`
 
-	testRouter(t, routeFile, func(router *Router) {
+	testRouter(t, routeFile, false, func(router *Router) {
 		assertNoRoute(t, router, "/foo")
 		assertRoute(t, router, "/foo/", "noslash/withslash", map[string]string{}, "", "", []string{"GET"}, []string{})
 	})
@@ -106,7 +106,7 @@ func TestRouterFinickySlashStuff2(t *testing.T) {
     withslash /
   `
 
-	testRouter(t, routeFile, func(router *Router) {
+	testRouter(t, routeFile, false, func(router *Router) {
 		assertRoute(t, router, "/foo", "noslash", map[string]string{}, "", "", []string{"GET"}, []string{})
 		assertRoute(t, router, "/foo/", "noslash/withslash", map[string]string{}, "", "", []string{"GET"}, []string{})
 	})
@@ -118,7 +118,7 @@ trail   /foo/
 notrail /foo!/
   `
 
-	testRouter(t, routeFile, func(router *Router) {
+	testRouter(t, routeFile, false, func(router *Router) {
 		assertRoute(t, router, "/foo/", "trail", map[string]string{}, "", "", []string{"GET"}, []string{})
 		assertRoute(t, router, "/foo", "notrail", map[string]string{}, "", "", []string{"GET"}, []string{})
 	})
@@ -133,9 +133,19 @@ r /
 			bar /bar
   `
 
-	testRouter(t, routeFile, func(router *Router) {
+	testRouter(t, routeFile, false, func(router *Router) {
 		assertRoute(t, router, "/", "r/rr/rrr", map[string]string{}, "", "", []string{"GET"}, []string{})
 		assertRoute(t, router, "/bar", "r/rr/bar", map[string]string{}, "", "", []string{"GET"}, []string{})
+	})
+}
+
+func TestRouterCaseSensitivity(t *testing.T) {
+	const routeFile = "r /Foo/Bar"
+
+	testRouter(t, routeFile, true, func(router *Router) {
+		assertNoRoute(t, router, "/foo/bar")
+		assertNoRoute(t, router, "/FOO/BAR")
+		assertRoute(t, router, "/Foo/Bar", "r", map[string]string{}, "", "", []string{"GET"}, []string{})
 	})
 }
 
@@ -169,7 +179,7 @@ foo36 /36
 foo37 /37
   `
 
-	testRouter(t, routeFile, func(router *Router) {
+	testRouter(t, routeFile, false, func(router *Router) {
 		for i := 1; i <= 3; i++ {
 			for j := 1; j <= 7; j++ {
 				assertRoute(t, router, fmt.Sprintf("/%v%v", i, j), fmt.Sprintf("foo%v%v", i, j), map[string]string{}, "", "", []string{"GET"}, []string{})
@@ -197,11 +207,34 @@ func TestRouterBinarySearch(t *testing.T) {
 	for n := 1; n < 100; n++ {
 		bsRoute := makeBSRouteFile(n)
 
-		testRouter(t, bsRoute, func(router *Router) {
+		testRouter(t, bsRoute, false, func(router *Router) {
 			for i := 1; i < n; i++ {
 				assertRoute(t, router, makeBSRoute(i, n, "123"), fmt.Sprintf("route%v", i), map[string]string{"param": "123"}, "", "", []string{"GET"}, []string{})
 			}
 		})
+	}
+}
+
+func TestNormalizeUrl(t *testing.T) {
+	type tst struct {
+		from, to string
+	}
+
+	cases := []tst{
+		{"", ""},
+		{"/foo/bar?boo=blab", "/foo/bar?boo=blab"},
+		{"/foo/bar?boo=BLAb", "/foo/bar?boo=BLAb"},
+		{"/fOo/bAr?foo=BLAB", "/foo/bar?foo=BLAB"},
+		{"/fOo/bAr?foo=BLAB?blah=fUg", "/foo/bar?foo=BLAB?blah=fUg"},
+		{"/foo/bar", "/foo/bar"},
+		{"/fOo/bAr", "/foo/bar"},
+	}
+
+	for _, c := range cases {
+		out := normalizeUrl(c.from)
+		if out != c.to {
+			t.Errorf("Expected %v -> %v, got %v\n", c.from, c.to, out)
+		}
 	}
 }
 
@@ -238,8 +271,13 @@ func makeBSRoute(i, n int, param string) string {
 	return sb.String()
 }
 
-func testRouter(t *testing.T, routeFile string, callback func(*Router)) {
-	entries, errors := compiler.ParseRouteFile(strings.NewReader(routeFile), compiler.DisallowUpperCase)
+func testRouter(t *testing.T, routeFile string, caseSensitive bool, callback func(*Router)) {
+	casePolicy := compiler.DisallowUpperCase
+	if caseSensitive {
+		casePolicy = compiler.AllowUpperCase
+	}
+
+	entries, errors := compiler.ParseRouteFile(strings.NewReader(routeFile), casePolicy)
 	if len(errors) > 0 {
 		t.Errorf("Errors parsing route file: %+v\n", errors)
 	}
@@ -251,7 +289,7 @@ func testRouter(t *testing.T, routeFile string, callback func(*Router)) {
 	routesJson, _ := compiler.RouteRegexpsToJSON(&rrs, []compiler.IncludeSpec{})
 	//fmt.Printf("JS %v\n", string(routesJson))
 
-	router, err := MakeRouter(routesJson)
+	router, err := MakeRouter(routesJson, caseSensitive)
 	if err != nil {
 		t.Errorf("%v\n", err)
 	}
@@ -274,28 +312,28 @@ func assertRoute(t *testing.T, router *Router, url, expectedName string, expecte
 		return
 	}
 
-	if routeResult.name != expectedName {
-		t.Errorf("Expected to resolve to '%v', got '%v'\n", expectedName, routeResult.name)
+	if routeResult.Name != expectedName {
+		t.Errorf("Expected to resolve to '%v', got '%v'\n", expectedName, routeResult.Name)
 	}
 
-	if !reflect.DeepEqual(routeResult.params, expectedParams) {
-		t.Errorf("Expected params: %+v\nGot params: %+v\n", expectedParams, routeResult.params)
+	if !reflect.DeepEqual(routeResult.Params, expectedParams) {
+		t.Errorf("Expected params: %+v\nGot params: %+v\n", expectedParams, routeResult.Params)
 	}
 
-	if routeResult.query != expectedQuery {
-		t.Errorf("Expected query: %v\nGot query: %v\n", expectedQuery, routeResult.query)
+	if routeResult.Query != expectedQuery {
+		t.Errorf("Expected query: %v\nGot query: %v\n", expectedQuery, routeResult.Query)
 	}
 
-	if routeResult.anchor != expectedAnchor {
-		t.Errorf("Expected anchor: %v\nGot anchor: %v\n", expectedAnchor, routeResult.anchor)
+	if routeResult.Anchor != expectedAnchor {
+		t.Errorf("Expected anchor: %v\nGot anchor: %v\n", expectedAnchor, routeResult.Anchor)
 	}
 
-	if !reflect.DeepEqual(routeResult.methods, expectedMethods) {
-		t.Errorf("Expected methods: %+v\nGot methods: %+v\n", expectedMethods, routeResult.methods)
+	if !reflect.DeepEqual(routeResult.Methods, expectedMethods) {
+		t.Errorf("Expected methods: %+v\nGot methods: %+v\n", expectedMethods, routeResult.Methods)
 	}
 
-	if !reflect.DeepEqual(routeResult.tags, expectedTags) {
-		t.Errorf("Expected tags: %+v\nGot tags: %+v\n", expectedTags, routeResult.tags)
+	if !reflect.DeepEqual(routeResult.Tags, expectedTags) {
+		t.Errorf("Expected tags: %+v\nGot tags: %+v\n", expectedTags, routeResult.Tags)
 	}
 }
 
@@ -317,7 +355,7 @@ func benchmarkRouterSimpleRoutes(b *testing.B, nRoutes int) {
 	routesJson, _ := compiler.RouteRegexpsToJSON(&rrs, []compiler.IncludeSpec{})
 	// use the line below to generate the files in js/bench_data, if they need to be updated.
 	//os.WriteFile(fmt.Sprintf("routes%v", nRoutes), []byte(routesJson), 0)
-	router, err := MakeRouter(routesJson)
+	router, err := MakeRouter(routesJson, false)
 	if err != nil {
 		b.Errorf("%v\n", err)
 	}

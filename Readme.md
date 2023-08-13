@@ -251,11 +251,12 @@ in another. In other words, given the following two input files, the router reco
 
 By default Claney operates in case-insensitive mode. Routes must be defined
 using only lower case characters, and the example router implementations
-normalize routes to lower case before matching (excluding the query string).
+normalize URLs to lower case before matching (excluding the query string).
 
 If you want your router to be case-sensitive, pass the `-allow-upper-case` flag
-to `claney` and modify your router implementation(s) to remove the normalisation
-step.
+to `claney` and ensure that to your router implementation dos not normalize URLs
+before matching. The router constructors in the example Go and JavaScript router
+implementations take a boolean `caseSensitive` parameter.
 
 ### Filtering the output
 

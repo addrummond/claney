@@ -16,6 +16,7 @@ type router struct {
 	ConstantPortionNGroups int
 	Families               map[string]family
 	Repl                   string
+	CaseSensitive          bool
 }
 
 type family struct {
@@ -49,7 +50,8 @@ func (myRe *myRegexp) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func MakeRouter(jsonInput []byte) (Router, error) {
+// MakeRouter constructs a Router from JSON input
+func MakeRouter(jsonInput []byte, caseSensitive bool) (Router, error) {
 	var r Router
 
 	err := json.Unmarshal(jsonInput, &r.router)
@@ -63,22 +65,25 @@ func MakeRouter(jsonInput []byte) (Router, error) {
 		repl.WriteString(fmt.Sprintf("$%v", i))
 	}
 	r.router.Repl = repl.String()
+	r.router.CaseSensitive = caseSensitive
 
 	return r, nil
 }
 
+// RouteResult represents the result of attempting to route a URL.
 type RouteResult struct {
-	name    string
-	params  map[string]string
-	query   string
-	anchor  string
-	tags    []string
-	methods []string
+	Name    string
+	Params  map[string]string
+	Query   string
+	Anchor  string
+	Tags    []string
+	Methods []string
 }
 
 func Route(r *Router, url string) (RouteResult, bool) {
-	// Remove this call if you want a case-sensitive router
-	url = normalizeUrl(url)
+	if !r.router.CaseSensitive {
+		url = normalizeUrl(url)
+	}
 
 	cp := r.router.ConstantPortionRegexp.re.ReplaceAllString(url, r.router.Repl)
 	if cp == url {
@@ -106,12 +111,12 @@ func Route(r *Router, url string) (RouteResult, bool) {
 	}
 
 	return RouteResult{
-		name:    member.Name,
-		params:  params,
-		query:   submatches[len(submatches)-2],
-		anchor:  submatches[len(submatches)-1],
-		tags:    member.Tags,
-		methods: member.Methods,
+		Name:    member.Name,
+		Params:  params,
+		Query:   submatches[len(submatches)-2],
+		Anchor:  submatches[len(submatches)-1],
+		Tags:    member.Tags,
+		Methods: member.Methods,
 	}, true
 }
 

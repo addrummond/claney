@@ -1,6 +1,7 @@
 export class Router {
-  constructor(json) {
+  constructor(json, caseSensitive=false) {
     this.json = json;
+    this.caseSensitive = caseSensitive;
 
     this.cpr = new RegExp(json.constantPortionRegexp);
     this.groupRegexps = { };
@@ -10,8 +11,8 @@ export class Router {
   }
 
   route(url) {
-    // Remove this call if you want a case-sensitive router
-    url = normalizeUrl(url)
+    if (! this.caseSensitive)
+      url = normalizeUrl(url)
 
     const m = url.match(this.cpr);
     if (m === null)
@@ -71,7 +72,7 @@ export class Router {
   }
 }
 
-function normalizeUrl(url) {
+export function normalizeUrl(url) {
   const q = url.indexOf('?')
   if (q === -1)
     return url.toLowerCase();
