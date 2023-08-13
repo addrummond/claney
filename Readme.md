@@ -323,6 +323,10 @@ to `claney` and ensure that to your router implementation dos not normalize URLs
 before matching. The router constructors in the example Go and JavaScript router
 implementations take a boolean `caseSensitive` parameter.
 
+Benchmarking suggests that the cost of normalization is trivial (in JavaScript
+and Go at least) compared to the rest of the computation required to match a
+route.
+
 ## Implementation
 
 Routing is a two-step process. The first step is a find/replace  using a single
