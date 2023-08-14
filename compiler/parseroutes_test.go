@@ -278,7 +278,32 @@ func TestParseRouteFileAllowWeirdRouteNames(t *testing.T) {
 	_, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errs) != 0 {
 		t.Errorf("Expecting 0 errors, got %v: %+v\n", len(errs), errs)
+	}
+}
+
+func TestParseRouteFileEmptyMethodsList(t *testing.T) {
+	const routeFile = "route1 [] /fooo/bar\nroute2 [  ] /foo/amp\n"
+
+	_, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
+	if len(errs) == 2 {
+		if errs[0].Kind != EmptyMethodList || errs[1].Kind != EmptyMethodList {
+			t.Errorf("Expecting two 'EmptyMethodList' errors, got %+v\n", errs)
+		}
 		return
+	}
+	t.Errorf("Expecting 2 errors, got %v: %+v\n", len(errs), errs)
+}
+
+func TestParseRouteFileEmptyTags(t *testing.T) {
+	const routeFile = "route1 /fooo/bar [ ]\nroute2 /fooo/bar [ ] "
+
+	entries, errs := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
+	if len(errs) != 0 {
+		t.Errorf("Expecting 0 errors, got %v: %+v\n", len(errs), errs)
+		return
+	}
+	if len(entries) != 2 || len(entries[0].tags) != 0 || len(entries[1].tags) != 0 {
+		t.Errorf("Expected two routes with empty tags")
 	}
 }
 

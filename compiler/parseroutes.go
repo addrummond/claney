@@ -324,6 +324,7 @@ const (
 	MultipleSlashesInARow             RouteErrorKind = iota
 	UpperCaseCharInRoute              RouteErrorKind = iota
 	IOError                           RouteErrorKind = iota
+	EmptyMethodList                   RouteErrorKind = iota
 )
 
 type RouteError struct {
@@ -381,6 +382,8 @@ func (e RouteError) Error() string {
 		desc = "upper case character in route"
 	case IOError:
 		desc = fmt.Sprintf("IO Error: %v", e.IOError)
+	case EmptyMethodList:
+		desc = "list of methods for route is empty"
 	default:
 		panic(fmt.Sprintf("unrecognized routeRrrorKind %v", int(e.Kind)))
 	}
@@ -544,7 +547,9 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		}
 
 		methods := make(map[string]struct{}, 0)
+		explicitMethodListPresent := false
 		if wholeLine[i] == '[' {
+			explicitMethodListPresent = true
 			i++
 			var currentMethod strings.Builder
 			foundComma := false
@@ -580,6 +585,9 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 			}
 		}
 		if len(methods) == 0 {
+			if explicitMethodListPresent {
+				errors = append(errors, RouteError{EmptyMethodList, sourceLine, -1, "", 0, nil, []string{}})
+			}
 			methods["GET"] = struct{}{}
 		}
 
