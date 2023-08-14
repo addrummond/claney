@@ -70,7 +70,7 @@ This input defines the following routes as valid:
 --------------------|--------------|-------------------------------------|------------------------------|------------------------
 | root              | GET or POST  | /                                   | `[]`                         | `[]`
 | users/login       | GET          | /users/login                        | `[]`                         | `["users"]`
-| users/settings    | GET          | /users/:user_id/settings            | `["user_id]`                 | `["users"]`
+| users/settings    | GET          | /users/:user_id/settings            | `["user_id]"`                | `["users"]`
 | managers/login    | GET          | /managers/login                     | `[]`                         | `["admin","managers"]`
 | managers/login    | POST         | /managers/login                     | `[]`                         | `["admin","managers"]`
 | managers/settings | GET          | /managers/settings                  | `[]`                         | `["admin","managers"]`
