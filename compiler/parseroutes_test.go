@@ -336,29 +336,29 @@ func TestParseRouteFileMethodParsing(t *testing.T) {
 		}
 	}
 	{
-		r, errs := ParseRouteFile(strings.NewReader("foo [] /"), DisallowUpperCase)
+		r, errs := ParseRouteFile(strings.NewReader("foo [POST] /"), DisallowUpperCase)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors [4]: %+v\n", errs)
 		}
-		if !reflect.DeepEqual(r, []RouteFileEntry{{indent: 0, name: "foo", pattern: []routeElement{{kind: slash, value: ""}}, line: 1, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: map[string]struct{}{}}}) {
+		if !reflect.DeepEqual(r, []RouteFileEntry{{indent: 0, name: "foo", pattern: []routeElement{{kind: slash, value: ""}}, line: 1, terminal: true, methods: map[string]struct{}{"POST": {}}, tags: map[string]struct{}{}}}) {
 			t.Errorf("Unexpected tags parse [4]: %+v\n", r)
 		}
 	}
 	{
-		r, errs := ParseRouteFile(strings.NewReader("foo [ ] /"), DisallowUpperCase)
+		r, errs := ParseRouteFile(strings.NewReader("foo [ PUT  ] /"), DisallowUpperCase)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors [5]: %+v\n", errs)
 		}
-		if !reflect.DeepEqual(r, []RouteFileEntry{{indent: 0, name: "foo", pattern: []routeElement{{kind: slash, value: ""}}, line: 1, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: map[string]struct{}{}}}) {
+		if !reflect.DeepEqual(r, []RouteFileEntry{{indent: 0, name: "foo", pattern: []routeElement{{kind: slash, value: ""}}, line: 1, terminal: true, methods: map[string]struct{}{"PUT": {}}, tags: map[string]struct{}{}}}) {
 			t.Errorf("Unexpected tags parse [5]: %+v\n", r)
 		}
 	}
 	{
-		r, errs := ParseRouteFile(strings.NewReader("foo [  ] /"), DisallowUpperCase)
+		r, errs := ParseRouteFile(strings.NewReader("foo [DELETE ] /"), DisallowUpperCase)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors [6]: %+v\n", errs)
 		}
-		if !reflect.DeepEqual(r, []RouteFileEntry{{indent: 0, name: "foo", pattern: []routeElement{{kind: slash, value: ""}}, line: 1, terminal: true, methods: map[string]struct{}{"GET": {}}, tags: map[string]struct{}{}}}) {
+		if !reflect.DeepEqual(r, []RouteFileEntry{{indent: 0, name: "foo", pattern: []routeElement{{kind: slash, value: ""}}, line: 1, terminal: true, methods: map[string]struct{}{"DELETE": {}}, tags: map[string]struct{}{}}}) {
 			t.Errorf("Unexpected tags parse [6]: %+v\n", r)
 		}
 	}
