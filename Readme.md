@@ -316,7 +316,8 @@ claney -input routes -include-tags 'host:*' -output all_hosts.json
 
 By default Claney operates in case-insensitive mode. Routes must be defined
 using only lower case characters, and the example router implementations
-normalize URLs to lower case before matching (excluding the query string).
+normalize URLs to lower case before matching (excluding the query string and
+anchor).
 
 If you want your router to be case-sensitive, pass the `-allow-upper-case` flag
 to `claney` and ensure that to your router implementation dos not normalize URLs
