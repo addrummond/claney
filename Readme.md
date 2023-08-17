@@ -320,7 +320,7 @@ normalize URLs to lower case before matching (excluding the query string and
 anchor).
 
 If you want your router to be case-sensitive, pass the `-allow-upper-case` flag
-to `claney` and ensure that to your router implementation dos not normalize URLs
+to `claney` and ensure that to your router implementation does not normalize URLs
 before matching. The router constructors in the example Go and JavaScript router
 implementations take a boolean `caseSensitive` parameter.
 
