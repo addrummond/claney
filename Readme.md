@@ -150,7 +150,7 @@ Named parameters are introduced using the `:` character. Named parameters
 
 * never match empty strings or strings consisting only of `/` characters,
 * can appear anywhere within a URL pattern, and
-* are matched greedily except in the case of rest parameters (see below).
+* are matched greedily (except in the case of rest parameters – see below).
 
 #### String parameters
 
