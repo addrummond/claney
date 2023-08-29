@@ -398,42 +398,48 @@ Claney does not provide any special facilty for 'including' one router inside
 another, but it is easy to use rest parameters to decompose one router into
 multiple subrouters. For example:
 
+**Main routes file:**
 ```
-<file main_routes>
-  managers /managers/:**{path} [managers]
-  # add the line below if you want `/managers` to be a valid route,
-  # as rest parameters do not match empty strings.
-  managers /managers          [managers]
+managers /managers/:**{path} [managers]
+# add the line below if you want `/managers` to be a valid route,
+# as rest parameters do not match empty strings.
+managers /managers          [managers]
 
-  clients /clients/:**{path} [clients]
+clients /clients/:**{path} [clients]
+```
 
-<file manager_routes>
-  foo /foo
-  bar /bar
+**Manager routes file:**
+```
+foo /foo
+bar /bar
+```
 
-<file client_routes>
-  amp /amp
-  baz /baz
+**Client routes file:**
+```
+amp /amp
+baz /baz
+```
 
-<router code>
-  const mainRouter = new Router(MAIN_ROUTES_JSON);
-  const managerRouter = new Router(MANAGER_ROUTES_JSON);
-  const clientRouter = new Router(CLIENT_ROUTES_JSON);
+**Router code:**
+```javascript
+const mainRouter = new Router(MAIN_ROUTES_JSON);
+const managerRouter = new Router(MANAGER_ROUTES_JSON);
+const clientRouter = new Router(CLIENT_ROUTES_JSON);
 
-  function route(path) {
-    const r = mainRouter.route(path);
-    if (r === null)
-      return null;
-    const subroutePath = r.params.path || '/';
-
-    // you might want to add additional metadata to the return value
-    // to indicate which router matched the route.
-    if (r.tags.indexOf("managers") !== -1)
-      return managerRouter.route(subroutePath);
-    if (r.tags.indexOf("clients") !== -1)
-      return clientRouter.route(subroutePath);
+function route(path) {
+  const r = mainRouter.route(path);
+  if (r === null)
     return null;
-  }
+  const subroutePath = r.params.path || '/';
+
+  // you might want to add additional metadata to the return value
+  // to indicate which router matched the route.
+  if (r.tags.indexOf("managers") !== -1)
+    return managerRouter.route(subroutePath);
+  if (r.tags.indexOf("clients") !== -1)
+    return clientRouter.route(subroutePath);
+  return null;
+}
 ```
 
 ## Example implementations
