@@ -277,8 +277,7 @@ the flag.
 ### Adding a prefix to the output
 
 You can add a prefix to the output using the `-output-prefix` flag. This is
-handy if you want to output the routes as a JS file, as in the following
-example.
+handy if you want to output the routes as a JS file. For example:
 
 ```
 claney -input input.routes -output-prefix 'export const ROUTES=' -output output.js
@@ -397,7 +396,7 @@ On an M1 Macbook Air, the following times per routing operation are observed:
 
 Claney does not provide any special facilty for 'including' one router inside
 another, but it is easy to use rest parameters to decompose one router into
-multiple subrouters. For example:
+multiple subrouters, as in the following example.
 
 **Main routes file:**
 ```
