@@ -31,7 +31,11 @@ const regexpSpecialChars = "*+?.\\/|()[]"
 
 func regexpToNfa(regexp string) (*node, error) {
 	nodePool := make([]node, 0)
+
 	newNode := func() *node {
+		if cap(nodePool) <= len(nodePool) {
+			nodePool = make([]node, 0, cap(nodePool)*2)
+		}
 		nodePool = append(nodePool, node{})
 		return &nodePool[len(nodePool)-1]
 	}
