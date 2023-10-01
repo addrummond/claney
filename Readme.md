@@ -55,11 +55,21 @@ Download a binary release:
 
 * [Latest Claney release](https://github.com/addrummond/claney/releases/latest)
 
+Use ASDF (MacOS amd64 and arm64 or Linux amd64):
+
+* https://github.com/addrummond/asdf-claney
+
 Install from source:
 
 ```sh
-go install github.com/addrummond/claney@v0.4.1
-$(go env GOPATH)/bin/claney -input my_route_file -output routes.json
+go install github.com/addrummond/claney@v0.4.7
+$(go env GOPATH)/bin/claney -version
+```
+
+## Example usage
+
+```sh
+claney -input my_route_file -output routes.json
 ```
 
 ## Input format
