@@ -3,6 +3,9 @@ name: Release Claney
 on:
   push:
 
+permissions:
+  contents: write
+
 jobs:
   build-linux:
     name: GoReleaser build
