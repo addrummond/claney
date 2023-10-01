@@ -12,6 +12,8 @@ import (
 	"github.com/addrummond/claney/compiler"
 )
 
+var version string // to be overriden by goreleaser
+
 type filterAccum struct {
 	include  bool
 	set      func(*compiler.IncludeSpec, string)
@@ -126,6 +128,11 @@ func run(params runParams) int {
 	var exitCode int
 
 	if params.version {
+		if version != "" {
+			_, _ = params.fprintf(os.Stdout, "claney %+v\n", version)
+			return 0
+		}
+
 		bi, ok := debug.ReadBuildInfo()
 		if !ok || bi.Main.Version == "" {
 			_, _ = params.fprintf(os.Stdout, "claney version unknown\n")
