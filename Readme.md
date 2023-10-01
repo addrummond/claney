@@ -456,10 +456,11 @@ function route(path) {
 }
 ```
 
-## Example implementations
+## Router implementations
 
 Javascript and Go router implementations are provided in `js/router.js` and
-`router/router.go`.
+`router/router.go`. There is documentation for the Go implementation
+[here](https://pkg.go.dev/github.com/addrummond/claney/router).
 
 There is a simple example of integrating the router into a single-page React app
 in `js/react_example`. In this directory, run `build.sh` and then
