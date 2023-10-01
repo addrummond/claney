@@ -49,7 +49,7 @@ Claney does not directly support matching on hostnames. The 'Hosts' section
 covers some options for dealing with multiple hosts. If your routing involves a
 complex interaction between hosts and paths, Claney is probably not a good fit.
 
-## Installation and example usage
+## Installation
 
 Download a binary release:
 
