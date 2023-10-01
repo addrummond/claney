@@ -1,3 +1,11 @@
+<a href="https://godoc.org/github.com/addrummond/claney">
+<img src="https://godoc.org/github.com/addrummond/claney?status.svg" alt="GoDoc">
+</a>
+
+<a href="https://opensource.org/licenses/MIT" rel="nofollow">
+<img src="https://img.shields.io/github/license/mashape/apistatus.svg" alt="License"/>
+</a>
+
 # Claney – regular routes
 
 Claney is a library for compiling a list of routes down to a set of regular
