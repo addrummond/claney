@@ -55,7 +55,7 @@ Download a binary release:
 
 * [Latest Claney release](https://github.com/addrummond/claney/releases/latest)
 
-Install from source via Go:
+Install from source:
 
 ```sh
 go install github.com/addrummond/claney@v0.4.1
