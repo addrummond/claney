@@ -428,16 +428,40 @@ func withParentRoutes(routes []RouteInfo, iter func(*RouteInfo, []*RouteInfo)) {
 	}
 }
 
+func withParentRoutesFromTree(tree *cpNode, iter func(*RouteInfo, []*RouteInfo)) {
+	var rec func(n *cpNode, parents []*RouteInfo)
+	rec = func(n *cpNode, parents []*RouteInfo) {
+		if n == nil { // nil nodes can be inserted during some optimization passes
+			return
+		}
+
+		if n.routeInfo != nil {
+			iter(n.routeInfo, parents)
+		}
+
+		for _, c := range n.children {
+			var ps []*RouteInfo
+			ps = append(ps, parents...)
+			if n.routeInfo != nil {
+				ps = append(ps, n.routeInfo)
+			}
+			rec(c, ps)
+		}
+	}
+
+	rec(tree, nil)
+}
+
 type familyWithConstantPortion struct {
 	constantPortion string
 	routes          []RouteWithParents
 }
 
-func familiesByConstantPortion(routes []RouteInfo) []familyWithConstantPortion {
+func familiesByConstantPortion(n *cpNode) []familyWithConstantPortion {
 	families := make(map[string][]RouteWithParents, 0)
 	constantPortionUpTo := make(map[*RouteInfo]string)
 
-	withParentRoutes(routes, func(r *RouteInfo, parents []*RouteInfo) {
+	withParentRoutesFromTree(n, func(r *RouteInfo, parents []*RouteInfo) {
 		var cpb strings.Builder
 		for i, p := range parents {
 			if i != 0 && !isJustSlash(parents[i-1]) {
@@ -470,9 +494,56 @@ func familiesByConstantPortion(routes []RouteInfo) []familyWithConstantPortion {
 	return fwcps
 }
 
-func GetRouteRegexps(routes []RouteInfo) routeRegexps {
+func filterTreeByIncludeSpecs(n *cpNode, includeSpecs []IncludeSpec) {
+	// Mark all routes to be excluded and remove children of any wholly excluded
+	// subtrees.
+	var rec func(n *cpNode)
+	rec = func(n *cpNode) {
+		ci := 0
+		for _, c := range n.children {
+			if matchingSpec(includeSpecs, c.routeInfo.methods, c.routeInfo.tags) {
+				n.children[ci] = c
+				ci++
+			} else {
+				c.excluded = true
+				c.routeInfo.terminal = false // ensure route does not appear in output
+				if len(c.children) != 0 {
+					n.children[ci] = c
+					ci++
+				}
+			}
+			rec(c)
+		}
+		n.children = n.children[:ci]
+	}
+
+	rec(n)
+
+	// Remove children of wholly excluded subtrees
+	var excl func(n *cpNode) bool
+	excl = func(n *cpNode) bool {
+		ci := 0
+		allExcluded := true
+		for _, c := range n.children {
+			if !excl(c) {
+				allExcluded = false
+				n.children[ci] = c
+				ci++
+			}
+		}
+		n.children = n.children[:ci]
+		return n.excluded && allExcluded
+	}
+
+	excl(n)
+}
+
+func GetRouteRegexps(routes []RouteInfo, includeSpecs []IncludeSpec) routeRegexps {
 	tree := getConstantPortionTree(routes)
+
+	filterTreeByIncludeSpecs(tree, includeSpecs)
 	optimizeConstantPortionTree(tree)
+
 	originalConstantPortionRegexp := getConstantPortionRegexp(tree)
 	parsedConstantPortionRegexp := parseRegexp(originalConstantPortionRegexp)
 	scratchBuffer := make([]byte, 64)
@@ -480,7 +551,7 @@ func GetRouteRegexps(routes []RouteInfo) routeRegexps {
 	refactorSingleGroupDisjuncts(sgds)
 	constantPortionRegexp := renodeToString(parsedConstantPortionRegexp)
 
-	byCp := familiesByConstantPortion(routes)
+	byCp := familiesByConstantPortion(tree)
 	families := make([]routeFamily, 0)
 
 	totalNGroups := getNCaptureGroups(constantPortionRegexp)
@@ -531,14 +602,22 @@ func getTerminalRoutes(rs []RouteWithParents) []*RouteWithParents {
 	return terms
 }
 
+type InclusionStatus int
+
+const (
+	Include InclusionStatus = iota
+	Exclude InclusionStatus = iota
+	Union   InclusionStatus = iota
+)
+
 type IncludeSpec struct {
-	Include bool
-	// One of these is "", the other is not
+	Include InclusionStatus
+	// One of these is "", the other is not (or both are "" for Union)
 	TagGlob string
 	Method  string
 }
 
-func RouteRegexpsToJSON(rrs *routeRegexps, tagGlobs []IncludeSpec) ([]byte, int) {
+func RouteRegexpsToJSON(rrs *routeRegexps, includeSpecs []IncludeSpec) ([]byte, int) {
 	// This function outputs the JSON directly without building an intermediate
 	// data structure. It's slightly more fiddly, but saves on unnecessary
 	// allocation.
@@ -554,10 +633,6 @@ func RouteRegexpsToJSON(rrs *routeRegexps, tagGlobs []IncludeSpec) ([]byte, int)
 	nFamiliesOut := 0
 	nRoutesOut := 0
 	for _, g := range rrs.families {
-		if !includeFamily(&g, tagGlobs) {
-			continue
-		}
-
 		if nFamiliesOut != 0 {
 			out = append(out, ',')
 		}
@@ -578,7 +653,8 @@ func RouteRegexpsToJSON(rrs *routeRegexps, tagGlobs []IncludeSpec) ([]byte, int)
 		out = append(out, `],"members":[`...)
 		nMembersOut := 0
 		for _, m := range g.members {
-			if !matchingSpec(tagGlobs, m.route.Route.methods, m.route.Route.tags) {
+			matchingMs := matchingMethods(includeSpecs, m.route.Route.methods, m.route.Route.tags)
+			if len(matchingMs) == 0 {
 				continue
 			}
 			if nMembersOut != 0 {
@@ -607,7 +683,7 @@ func RouteRegexpsToJSON(rrs *routeRegexps, tagGlobs []IncludeSpec) ([]byte, int)
 				out = appendJsonString(out, tag)
 			}
 			out = append(out, `],"methods":[`...)
-			for k, m := range stringSetToList(m.route.Route.methods) {
+			for k, m := range stringSetToList(matchingMs) {
 				if k != 0 {
 					out = append(out, ',')
 				}
@@ -623,23 +699,44 @@ func RouteRegexpsToJSON(rrs *routeRegexps, tagGlobs []IncludeSpec) ([]byte, int)
 	return out, nRoutesOut
 }
 
-func includeFamily(family *routeFamily, specs []IncludeSpec) bool {
-	for _, m := range family.members {
-		if matchingSpec(specs, m.route.Route.methods, m.route.Route.tags) {
+func splitByUnion(specs []IncludeSpec) [][]IncludeSpec {
+	var rs [][]IncludeSpec
+	addNew := true
+	for _, s := range specs {
+		if s.Include == Union {
+			addNew = true
+		} else {
+			if addNew {
+				rs = append(rs, nil)
+			}
+			rs[len(rs)-1] = append(rs[len(rs)-1], s)
+			addNew = false
+		}
+	}
+	return rs
+}
+
+func matchingSpec(specs []IncludeSpec, methods map[string]struct{}, tags map[string]struct{}) bool {
+	disjuncts := splitByUnion(specs)
+	if len(disjuncts) == 0 {
+		return true
+	}
+	for _, c := range disjuncts {
+		if matchingSpecHelper(c, methods, tags) {
 			return true
 		}
 	}
 	return false
 }
 
-func matchingSpec(specs []IncludeSpec, methods map[string]struct{}, tags map[string]struct{}) bool {
+func matchingSpecHelper(specs []IncludeSpec, methods map[string]struct{}, tags map[string]struct{}) bool {
 	if len(specs) == 0 {
 		return true
 	}
 
 	// Include by default if first in sequence is exclude, or exclude by default
 	// if first in sequence is include.
-	included := !specs[0].Include
+	included := specs[0].Include == Exclude
 
 	removedMethods := make(map[string]struct{})
 
@@ -647,14 +744,14 @@ func matchingSpec(specs []IncludeSpec, methods map[string]struct{}, tags map[str
 		if s.TagGlob != "" {
 			for t := range tags {
 				if glob.Glob(s.TagGlob, t) {
-					included = s.Include
+					included = s.Include == Include
 					break
 				}
 			}
 		} else if s.Method != "" {
 			ucmeth := strings.ToUpper(s.Method)
 			if _, ok := methods[ucmeth]; ok {
-				if s.Include {
+				if s.Include == Include {
 					included = true
 					delete(removedMethods, ucmeth)
 				} else {
@@ -662,13 +759,21 @@ func matchingSpec(specs []IncludeSpec, methods map[string]struct{}, tags map[str
 					included = len(removedMethods) != len(methods)
 				}
 			} else {
-				included = !s.Include
+				included = s.Include == Exclude
 			}
-		} else {
-			panic("Internal error: Bad IncludeSpec")
 		}
 	}
 	return included
+}
+
+func matchingMethods(specs []IncludeSpec, methods map[string]struct{}, tags map[string]struct{}) map[string]struct{} {
+	r := make(map[string]struct{})
+	for m, _ := range methods {
+		if matchingSpec(specs, map[string]struct{}{m: {}}, tags) {
+			r[m] = struct{}{}
+		}
+	}
+	return r
 }
 
 func computeTags(m *routeGroupMember) []string {
@@ -799,6 +904,7 @@ type cpNode struct {
 	routeInfo  *RouteInfo
 	leftOffset int
 	factorChar rune // 0 if regular node
+	excluded   bool // used temporarily during filtering
 	children   []*cpNode
 }
 

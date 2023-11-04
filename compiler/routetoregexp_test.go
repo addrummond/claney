@@ -85,7 +85,7 @@ func TestProcessRouteFile(t *testing.T) {
 	if len(errs) != 0 {
 		t.Errorf("%+v\n", errs)
 	}
-	rrs := GetRouteRegexps(routes)
+	rrs := GetRouteRegexps(routes, []IncludeSpec{})
 
 	const expected = `
 constantPortionRegexp="^(?:\\/+(?:(?:(?:(?:(f)(\\/)\\/*(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+|(f)(\\/)\\/*(oobar)(\\/)\\/*[^\\/?#]+|(foo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+|(fooba)(\\/)\\/*(r)(\\/)\\/*[^\\/?#]+|(foobar)(\\/)\\/*[^\\/?#]+)))\\/*|(managers)(?:\\/*|(\\/)\\/*(?:[^\\/?#]+(\\/)\\/*(home)\\/*|[^\\/?#]+(\\/)\\/*(profile)\\/*|[^\\/?#]+(\\/)\\/*(stats)\\/*|(?:(?:(f)(?:(oo)(\\/)\\/*(bar)(\\/)\\/*[^\\/?#]+|(oobar)(\\/)\\/*(xyz)(\\/)\\/*[^\\/?#]+)))\\/*|(orders)(\\/)\\/*[^\\/?#]+(\\/)\\/*[^\\/?#]+\\/*))|(users)(?:\\/*|(\\/)\\/*(?:[^\\/?#]+(\\/)\\/*(home)\\/*|[^\\/?#]+(\\/)\\/*(profile)\\/*|[^\\/?#]+(\\/)\\/*(orders)(?:(\\/)\\/*(?:[^\\/?#]+\\/*))))))(?:\\?[^#]*)?(?:#.*)?$"
@@ -766,50 +766,56 @@ func TestMatchingSpecs(t *testing.T) {
 	if !matchingSpec([]IncludeSpec{}, map[string]struct{}{}, map[string]struct{}{"foo": {}, "bar": {}}) {
 		t.Errorf("Empty specs should match non-empty tags")
 	}
-	if !matchingSpec([]IncludeSpec{{true, "manager/*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if !matchingSpec([]IncludeSpec{{Include, "manager/*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Simple include match works as expected with glob match")
 	}
-	if matchingSpec([]IncludeSpec{{false, "manager/*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if matchingSpec([]IncludeSpec{{Exclude, "manager/*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Simple exclude match works as expected with glob match")
 	}
-	if !matchingSpec([]IncludeSpec{{true, "other", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if !matchingSpec([]IncludeSpec{{Include, "other", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Simple include match works as expected with const match")
 	}
-	if matchingSpec([]IncludeSpec{{false, "other", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if matchingSpec([]IncludeSpec{{Exclude, "other", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Simple exclude match works as expected with const match")
 	}
-	if !matchingSpec([]IncludeSpec{{false, "blabble", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if !matchingSpec([]IncludeSpec{{Exclude, "blabble", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Include by default if we start with exclude")
 	}
-	if matchingSpec([]IncludeSpec{{true, "blabble", ""}, {false, "blubble", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if matchingSpec([]IncludeSpec{{Include, "blabble", ""}, {Exclude, "blubble", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Exclude by default if we start with include")
 	}
-	if !matchingSpec([]IncludeSpec{{true, "manager/*", ""}, {false, "*goo*", ""}, {false, "*bar*", ""}, {true, "*goo*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if !matchingSpec([]IncludeSpec{{Include, "manager/*", ""}, {Exclude, "*goo*", ""}, {Exclude, "*bar*", ""}, {Include, "*goo*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Complex sequence of include...exclude works as expected [1]")
 	}
-	if matchingSpec([]IncludeSpec{{true, "manager/*", ""}, {false, "*goo*", ""}, {false, "*bar*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if matchingSpec([]IncludeSpec{{Include, "manager/*", ""}, {Exclude, "*goo*", ""}, {Exclude, "*bar*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Complex sequence of include...exclude works as expected [2]")
 	}
-	if !matchingSpec([]IncludeSpec{{false, "manager/*", ""}, {false, "*oth*", ""}, {true, "*goo*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if !matchingSpec([]IncludeSpec{{Exclude, "manager/*", ""}, {Exclude, "*oth*", ""}, {Include, "*goo*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Complex sequence of exclude...include works as expected [1]")
 	}
-	if matchingSpec([]IncludeSpec{{false, "manager/*", ""}, {false, "*oth*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
+	if matchingSpec([]IncludeSpec{{Exclude, "manager/*", ""}, {Exclude, "*oth*", ""}}, map[string]struct{}{}, map[string]struct{}{"manager/goo": {}, "manager/bar": {}, "other": {}}) {
 		t.Errorf("Sequence of excludes works as expected [2]")
 	}
-	if !matchingSpec([]IncludeSpec{{true, "", "get"}}, map[string]struct{}{"GET": {}, "PUT": {}}, map[string]struct{}{}) {
+	if !matchingSpec([]IncludeSpec{{Include, "", "get"}}, map[string]struct{}{"GET": {}, "PUT": {}}, map[string]struct{}{}) {
 		t.Errorf("Method matching is case-insensitive [1]")
 	}
-	if matchingSpec([]IncludeSpec{{false, "", "get"}}, map[string]struct{}{"GET": {}}, map[string]struct{}{}) {
+	if matchingSpec([]IncludeSpec{{Exclude, "", "get"}}, map[string]struct{}{"GET": {}}, map[string]struct{}{}) {
 		t.Errorf("Method matching is case-insensitive [2]")
 	}
-	if matchingSpec([]IncludeSpec{{false, "", "get"}, {false, "", "post"}, {false, "", "put"}}, map[string]struct{}{"GET": {}, "POST": {}, "PUT": {}}, map[string]struct{}{}) {
+	if matchingSpec([]IncludeSpec{{Exclude, "", "get"}, {Exclude, "", "post"}, {Exclude, "", "put"}}, map[string]struct{}{"GET": {}, "POST": {}, "PUT": {}}, map[string]struct{}{}) {
 		t.Errorf("Route should be removed when all its methods are removed")
 	}
-	if !matchingSpec([]IncludeSpec{{false, "", "get"}, {false, "", "post"}}, map[string]struct{}{"GET": {}, "POST": {}, "PUT": {}}, map[string]struct{}{}) {
+	if !matchingSpec([]IncludeSpec{{Exclude, "", "get"}, {Exclude, "", "post"}}, map[string]struct{}{"GET": {}, "POST": {}, "PUT": {}}, map[string]struct{}{}) {
 		t.Errorf("Route should not be removed if all but one of its methods is removed")
 	}
-	if !matchingSpec([]IncludeSpec{{false, "", "get"}, {false, "", "post"}, {false, "", "put"}, {true, "", "post"}}, map[string]struct{}{"GET": {}, "POST": {}, "PUT": {}}, map[string]struct{}{}) {
+	if !matchingSpec([]IncludeSpec{{Exclude, "", "get"}, {Exclude, "", "post"}, {Exclude, "", "put"}, {Include, "", "post"}}, map[string]struct{}{"GET": {}, "POST": {}, "PUT": {}}, map[string]struct{}{}) {
 		t.Errorf("Route should not be removed if all its methods are removed and then one is added back")
+	}
+	if !matchingSpec([]IncludeSpec{{Exclude, "badtag", ""}, {Union, "", ""}, {Include, "oktag", ""}}, map[string]struct{}{"GET": {}, "PUT": {}}, map[string]struct{}{"badtag": {}, "oktag": {}}) {
+		t.Errorf("Expected union of excludes and includes")
+	}
+	if !matchingSpec([]IncludeSpec{{Include, "oktag", ""}, {Union, "", ""}, {Exclude, "badtag", ""}}, map[string]struct{}{"GET": {}, "PUT": {}}, map[string]struct{}{"badtag": {}, "oktag": {}}) {
+		t.Errorf("Expected union of excludes and includes")
 	}
 }
 

@@ -16,6 +16,7 @@ var version string // to be overriden by goreleaser
 
 type filterAccum struct {
 	include  bool
+	union    bool
 	set      func(*compiler.IncludeSpec, string)
 	tagGlobs *[]compiler.IncludeSpec
 }
@@ -27,7 +28,7 @@ func (fa *filterAccum) String() string {
 			if i != 0 {
 				sb.WriteByte((','))
 			}
-			if ta.Include {
+			if ta.Include == compiler.Include {
 				sb.WriteByte('+')
 			} else {
 				sb.WriteByte('-')
@@ -40,7 +41,10 @@ func (fa *filterAccum) String() string {
 
 func (fa *filterAccum) Set(s string) error {
 	var spec compiler.IncludeSpec
-	spec.Include = fa.include
+	spec.Include = compiler.Include
+	if !fa.include {
+		spec.Include = compiler.Exclude
+	}
 	fa.set(&spec, s)
 	*fa.tagGlobs = append(*fa.tagGlobs, spec)
 	return nil
@@ -69,14 +73,20 @@ func main() {
 	output := flag.String("output", "", "output file (default stdout)")
 	outputPrefix := flag.String("output-prefix", "", `add a prefix to the output (e.g. "export ROUTES=")`)
 	includeSpecs := make([]compiler.IncludeSpec, 0)
-	includeTags := &filterAccum{true, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
-	excludeTags := &filterAccum{false, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
-	includeMethods := &filterAccum{true, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
-	excludeMethods := &filterAccum{false, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
+	includeTags := &filterAccum{true, false, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
+	excludeTags := &filterAccum{false, false, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
+	includeMethods := &filterAccum{true, false, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
+	excludeMethods := &filterAccum{false, false, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
 	flag.Var(includeTags, "include-tags", "include routes with these tags (wildcard pattern)")
 	flag.Var(excludeTags, "exclude-tags", "exclude routes with these tags (wildcard pattern)")
 	flag.Var(includeMethods, "include-method", "include routes with this method")
 	flag.Var(excludeMethods, "exclude-method", "exclude routes with this method")
+	flag.BoolFunc("union", "union operation on [in/ex]clude-tags and [in/ex]-clude methods", func(_ string) error {
+		var spec compiler.IncludeSpec
+		spec.Include = compiler.Union
+		includeSpecs = append(includeSpecs, spec)
+		return nil
+	})
 	flag.Parse()
 
 	// Claney doesn't take any bare arguments, so print the usage message and exit
@@ -210,7 +220,7 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 		return 1
 	}
 
-	routeRegexps := compiler.GetRouteRegexps(routes)
+	routeRegexps := compiler.GetRouteRegexps(routes, params.includeSpecs)
 	json, nRoutes := compiler.RouteRegexpsToJSON(&routeRegexps, params.includeSpecs)
 
 	retCode := 0
