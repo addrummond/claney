@@ -282,10 +282,10 @@ claney -input input.routes -output output.json -include-tags 'manager-*' -exclud
 The `-[in/ex]clude-tags` and `-[in/ex]clude-method` flags are interpreted in
 order for each route. In the example above, a given route is included if it has
 a tag matching the glob `manager-*`, then excluded if its method is `POST` or
-`PUT`, then included if it has the `special-POST` tag. The ultimate fate of the
-route is decided by the last matching include or exclude flag. If the first flag
-in the sequence is an include then each route is excluded by default, whereas if
-the first flag is an exclude, each route is included by default.
+`PUT`, then included again if it has the `special-POST` tag. The ultimate fate
+of the route is decided by the last matching include or exclude flag. If the
+first flag in the sequence is an include then each route is excluded by default,
+whereas if the first flag is an exclude, each route is included by default.
 
 In the case of routes with multiple methods, each method is treated
 independently for filtering. For example, for the route `foo [GET,POST] /foo`,
