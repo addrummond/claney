@@ -293,14 +293,17 @@ the flag `-exclude-method POST` generates a router that recognizes `GET /foo`
 but not `POST /foo`.
 
 The flag `-union` (which takes no argument) may be placed in the middle of a
-sequence of include and exclude flags to separate independent sequences of
-include and exclude operations. For example, the following sequence of flags
-restricts the output to all routes that either have the tag `foo` or do not
-have the tag `bar`:
+sequence of include and exclude flags to deliniate multiple independent
+sequences of include and exclude operations. For example, the following sequence
+of flags restricts the output to all routes that either have the tag `foo` or do
+not have the tag `bar`:
 
 ```
 -include-tags foo -union -exclude-tags bar
 ```
+
+If `-union` were ommitted from the sequence above, the output would instead
+include all routes that have the tag `foo` and do not have the tag `bar`.
 
 ### Adding a prefix to the output
 
