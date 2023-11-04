@@ -280,22 +280,27 @@ claney -input input.routes -output output.json -include-tags 'manager-*' -exclud
 ```
 
 The `-[in/ex]clude-tags` and `-[in/ex]clude-method` flags are interpreted in
-order. In the example above, the set of output routes is first restricted to
-routes with tags that match the glob `manager-*`. Then all `POST` and `PUT`
-routes are excluded from the output set and routes with the `special-post` tag
-are added to the output set. If any `POST` routes happen to have the
-`special-POST` tag, then these routes will be added back into the output set,
-overriding their previous exclusion.
+order for each route. In the example above, a given route is included if it has
+a tag matching the glob `manager-*`, then excluded if its method is `POST` or
+`PUT`, then included if it has the `special-POST` tag. The ultimate fate of the
+route is decided by the last matching include or exclude flag. If the first flag
+in the sequence is an include then each route is excluded by default, whereas if
+the first flag is an exclude, each route is included by default.
 
 In the case of routes with multiple methods, each method is treated
-independently for filtering. For example, in the case of a route such as `foo
-[GET,POST] /foo`, the flag `-exclude-method POST` generates a router that
-recognizes `GET /foo` but not `POST /foo`.
+independently for filtering. For example, for the route `foo [GET,POST] /foo`,
+the flag `-exclude-method POST` generates a router that recognizes `GET /foo`
+but not `POST /foo`.
 
-If the first flag in the sequence is an include, then the initial output route
-set contains all and only the routes included by that flag. If the first flag is
-an exclude, then the initial set contains all routes except those excluded by
-the flag.
+The flag `-union` (which takes no argument) may be placed in the middle of a
+sequence of include and exclude flags to separate independent sequences of
+include and exclude operations. For example, the following sequence of flags
+restricts the output to all routes that either have the tag `foo` or do not
+have the tag `bar`:
+
+```
+-include-tags foo -union -exclude-tags bar
+```
 
 ### Adding a prefix to the output
 
