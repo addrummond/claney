@@ -102,6 +102,7 @@ func main() {
 		inputFiles:     filenames,
 		output:         *output,
 		outputPrefix:   *outputPrefix,
+		includeSpecs:   includeSpecs,
 		verbose:        *verbose,
 		allowUpperCase: *allowUpperCase,
 		withReader:     withReader,
@@ -115,7 +116,7 @@ type runParams struct {
 	inputFiles     []string
 	output         string
 	outputPrefix   string
-	specs          []compiler.IncludeSpec
+	includeSpecs   []compiler.IncludeSpec
 	verbose        bool
 	allowUpperCase bool
 	withReader     func(string, func(io.Reader)) error
@@ -210,7 +211,7 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 	}
 
 	routeRegexps := compiler.GetRouteRegexps(routes)
-	json, nRoutes := compiler.RouteRegexpsToJSON(&routeRegexps, params.specs)
+	json, nRoutes := compiler.RouteRegexpsToJSON(&routeRegexps, params.includeSpecs)
 
 	retCode := 0
 
