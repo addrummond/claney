@@ -1,6 +1,6 @@
 module github.com/addrummond/claney
 
-go 1.18
+go 1.21
 
 require (
 	github.com/antchfx/jsonquery v1.3.2

@@ -691,7 +691,7 @@ func ParseRouteFiles(inputFiles []string, inputReaders []io.Reader, casePolicy C
 	for i, r := range inputReaders {
 		wg.Add(1)
 
-		ii := i // for Go < 1.20 compat
+		ii := i // for Go <= 1.21 compat
 		rr := r // ditto
 
 		go func() {
