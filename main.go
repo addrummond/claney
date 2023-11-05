@@ -75,12 +75,12 @@ func main() {
 	includeSpecs := make([]compiler.IncludeSpec, 0)
 	includeTags := &filterAccum{true, false, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
 	excludeTags := &filterAccum{false, false, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
-	includeMethods := &filterAccum{true, false, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
-	excludeMethods := &filterAccum{false, false, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
+	includeMethod := &filterAccum{true, false, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
+	excludeMethod := &filterAccum{false, false, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
 	flag.Var(includeTags, "include-tags", "include routes with these tags (wildcard pattern)")
 	flag.Var(excludeTags, "exclude-tags", "exclude routes with these tags (wildcard pattern)")
-	flag.Var(includeMethods, "include-method", "include routes with this method")
-	flag.Var(excludeMethods, "exclude-method", "exclude routes with this method")
+	flag.Var(includeMethod, "include-method", "include routes with this method")
+	flag.Var(excludeMethod, "exclude-method", "exclude routes with this method")
 	flag.BoolFunc("union", "union operation on [in/ex]clude-tags and [in/ex]-clude methods", func(_ string) error {
 		var spec compiler.IncludeSpec
 		spec.Include = compiler.Union
