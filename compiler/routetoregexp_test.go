@@ -817,6 +817,26 @@ func TestMatchingSpecs(t *testing.T) {
 	if !matchingSpec([]IncludeSpec{{Include, "oktag", ""}, {Union, "", ""}, {Exclude, "badtag", ""}}, map[string]struct{}{"GET": {}, "PUT": {}}, map[string]struct{}{"badtag": {}, "oktag": {}}) {
 		t.Errorf("Expected union of excludes and includes")
 	}
+	if matchingSpec([]IncludeSpec{{Exclude, "tag1", ""}, {Union, "", ""}, {Exclude, "tag2", ""}, {Union, "", ""}, {Exclude, "tag3", ""}, {Union, "", ""}, {Exclude, "tag4", ""}}, map[string]struct{}{"GET": {}, "PUT": {}}, map[string]struct{}{"tag1": {}, "tag2": {}, "tag3": {}, "tag4": {}}) {
+		t.Errorf("Expected union of exclusions of every tags that the route has not to include the route")
+	}
+	if !matchingSpec([]IncludeSpec{{Exclude, "tagX", ""}, {Union, "", ""}, {Exclude, "tag2", ""}, {Union, "", ""}, {Exclude, "tag3", ""}, {Union, "", ""}, {Exclude, "tag4", ""}}, map[string]struct{}{"GET": {}, "PUT": {}}, map[string]struct{}{"tag1": {}, "tag2": {}, "tag3": {}, "tag4": {}}) {
+		t.Errorf("With one exclusion of a tag the route doesn't have, the union includes the route")
+	}
+
+	//
+	// Example from docs
+	//     -include-tags 'manager-*' -exclude-method POST -exclude-method PUT -include-tags special-POST
+	//
+	if !matchingSpec([]IncludeSpec{{Include, "manager-*", ""}, {Exclude, "", "POST"}, {Exclude, "", "PUT"}, {Include, "special-POST", ""}}, map[string]struct{}{"PUT": {}, "POST": {}}, map[string]struct{}{"manager-foo": {}, "special-POST": {}}) {
+		t.Errorf("Expected special-POST tagged route to make it through")
+	}
+	if matchingSpec([]IncludeSpec{{Include, "manager-*", ""}, {Exclude, "", "POST"}, {Exclude, "", "PUT"}, {Include, "special-POST", ""}}, map[string]struct{}{"PUT": {}, "POST": {}}, map[string]struct{}{"manager-foo": {}}) {
+		t.Errorf("Did not expect PUT/POST route not tagged special-POST to make it through")
+	}
+	if !matchingSpec([]IncludeSpec{{Include, "manager-*", ""}, {Exclude, "", "POST"}, {Exclude, "", "PUT"}, {Include, "special-POST", ""}}, map[string]struct{}{"PUT": {}, "POST": {}, "GET": {}}, map[string]struct{}{"manager-foo": {}}) {
+		t.Errorf("GET method still gets through")
+	}
 }
 
 func TestConstantPortion(t *testing.T) {
