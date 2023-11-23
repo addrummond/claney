@@ -3,7 +3,7 @@
 </a>
 
 <a href="https://opensource.org/licenses/MIT" rel="nofollow">
-<img src="https://img.shields.io/github/license/mashape/apistatus.svg" alt="License"/>
+<img src="https://img.shields.io/github/license/mashape/apistatus.svg" alt="License">
 </a>
 
 # Claney – regular routes
