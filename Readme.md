@@ -1,4 +1,4 @@
-<a href="https://godoc.org/github.com/addrummond/claney">
+<a href="https://godoc.org/github.com/addrummond/claney" style="text-decoration: none">
 <img src="https://godoc.org/github.com/addrummond/claney?status.svg" alt="GoDoc">
 </a>
 
