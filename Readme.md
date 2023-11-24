@@ -1,11 +1,12 @@
-<span></span>
-<a href="https://godoc.org/github.com/addrummond/claney" rel="nofollow" style="text-decoration: none">
+<div>
+  <a href="https://godoc.org/github.com/addrummond/claney" rel="nofollow" style="text-decoration: none">
 <img src="https://godoc.org/github.com/addrummond/claney?status.svg" alt="GoDoc">
 </a>
 
 <a href="https://opensource.org/licenses/MIT" rel="nofollow" style="text-decoration: none">
 <img src="https://img.shields.io/github/license/mashape/apistatus.svg" alt="License">
 </a>
+</div>
 
 # Claney – regular routes
 
