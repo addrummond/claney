@@ -14,42 +14,6 @@ import (
 
 var version string // to be overriden by goreleaser
 
-type filterAccum struct {
-	include  bool
-	union    bool
-	set      func(*compiler.IncludeSpec, string)
-	tagGlobs *[]compiler.IncludeSpec
-}
-
-func (fa *filterAccum) String() string {
-	var sb strings.Builder
-	if fa.tagGlobs != nil {
-		for i, ta := range *fa.tagGlobs {
-			if i != 0 {
-				sb.WriteByte((','))
-			}
-			if ta.Include == compiler.Include {
-				sb.WriteByte('+')
-			} else {
-				sb.WriteByte('-')
-			}
-			sb.WriteString(ta.TagGlob)
-		}
-	}
-	return sb.String()
-}
-
-func (fa *filterAccum) Set(s string) error {
-	var spec compiler.IncludeSpec
-	spec.Include = compiler.Include
-	if !fa.include {
-		spec.Include = compiler.Exclude
-	}
-	fa.set(&spec, s)
-	*fa.tagGlobs = append(*fa.tagGlobs, spec)
-	return nil
-}
-
 type inputAccum struct {
 	filenames []string
 }
@@ -72,21 +36,7 @@ func main() {
 	flag.Var(inputFiles, "input", "input file (default stdin)")
 	output := flag.String("output", "", "output file (default stdout)")
 	outputPrefix := flag.String("output-prefix", "", `add a prefix to the output (e.g. "export ROUTES=")`)
-	includeSpecs := make([]compiler.IncludeSpec, 0)
-	includeTags := &filterAccum{true, false, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
-	excludeTags := &filterAccum{false, false, func(is *compiler.IncludeSpec, val string) { is.TagGlob = val }, &includeSpecs}
-	includeMethod := &filterAccum{true, false, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
-	excludeMethod := &filterAccum{false, false, func(is *compiler.IncludeSpec, val string) { is.Method = val }, &includeSpecs}
-	flag.Var(includeTags, "include-tags", "include routes with these tags (wildcard pattern)")
-	flag.Var(excludeTags, "exclude-tags", "exclude routes with these tags (wildcard pattern)")
-	flag.Var(includeMethod, "include-method", "include routes with this method")
-	flag.Var(excludeMethod, "exclude-method", "exclude routes with this method")
-	flag.BoolFunc("union", "union operation on [in/ex]clude-tags and [in/ex]-clude methods", func(_ string) error {
-		var spec compiler.IncludeSpec
-		spec.Include = compiler.Union
-		includeSpecs = append(includeSpecs, spec)
-		return nil
-	})
+	filter := flag.String("filter", "", "include only routes with tags that match the given expression")
 	flag.Parse()
 
 	// Claney doesn't take any bare arguments, so print the usage message and exit
@@ -112,7 +62,7 @@ func main() {
 		inputFiles:     filenames,
 		output:         *output,
 		outputPrefix:   *outputPrefix,
-		includeSpecs:   includeSpecs,
+		filter:         *filter,
 		verbose:        *verbose,
 		allowUpperCase: *allowUpperCase,
 		withReader:     withReader,
@@ -126,7 +76,7 @@ type runParams struct {
 	inputFiles     []string
 	output         string
 	outputPrefix   string
-	includeSpecs   []compiler.IncludeSpec
+	filter         string
 	verbose        bool
 	allowUpperCase bool
 	withReader     func(string, func(io.Reader)) error
@@ -220,8 +170,14 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 		return 1
 	}
 
-	routeRegexps := compiler.GetRouteRegexps(routes, params.includeSpecs)
-	json, nRoutes := compiler.RouteRegexpsToJSON(&routeRegexps, params.includeSpecs)
+	filter, filterErr := compiler.ParseTagExpr(params.filter)
+	if filterErr != nil {
+		params.fprintf(os.Stderr, "Error parsing value of -filter option:\n%v\n", filterErr)
+		return 1
+	}
+
+	routeRegexps := compiler.GetRouteRegexps(routes, filter)
+	json, nRoutes := compiler.RouteRegexpsToJSON(&routeRegexps, filter)
 
 	retCode := 0
 

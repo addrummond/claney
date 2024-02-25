@@ -7,13 +7,13 @@ import (
 
 func testGlobMatch(t *testing.T, pattern, subj string) {
 	if !Glob(pattern, subj) {
-		t.Fatalf("%s should match %s", pattern, subj)
+		t.Errorf("%s should match %s", pattern, subj)
 	}
 }
 
 func testGlobNoMatch(t *testing.T, pattern, subj string) {
 	if Glob(pattern, subj) {
-		t.Fatalf("%s should not match %s", pattern, subj)
+		t.Errorf("%s should not match %s", pattern, subj)
 	}
 }
 
@@ -94,6 +94,30 @@ func TestGlob(t *testing.T) {
 	} {
 		testGlobNoMatch(t, pattern, "this is a test")
 	}
+
+	// Escaping matches
+	for _, pattern := range []string{
+		"*test",
+		"this*",
+		"this*test",
+		"*is *",
+		"*is*a*",
+		"*\\*\\**",
+		"*is a \\*\\* test*",
+	} {
+		testGlobMatch(t, pattern, "this is a ** test")
+	}
+
+	// Escaping non-matches
+	for _, pattern := range []string{
+		"* \\*\\* *",
+		"*is a \\*\\* test*",
+	} {
+		testGlobNoMatch(t, pattern, "this is a *** test")
+	}
+
+	// Misc.
+	testGlobMatch(t, "api-\\*", "api-*")
 }
 
 func BenchmarkGlob(b *testing.B) {

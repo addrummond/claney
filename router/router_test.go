@@ -285,8 +285,8 @@ func testRouter(t *testing.T, routeFile string, caseSensitive bool, callback fun
 	if len(routeErrors) > 0 {
 		t.Errorf("Errors processing route file: %+v\n", routeErrors)
 	}
-	rrs := compiler.GetRouteRegexps(routes, []compiler.IncludeSpec{})
-	routesJson, _ := compiler.RouteRegexpsToJSON(&rrs, []compiler.IncludeSpec{})
+	rrs := compiler.GetRouteRegexps(routes, nil)
+	routesJson, _ := compiler.RouteRegexpsToJSON(&rrs, nil)
 	//fmt.Printf("JS %v\n", string(routesJson))
 
 	router, err := MakeRouter(routesJson, caseSensitive)
@@ -351,8 +351,8 @@ func benchmarkRouterSimpleRoutes(b *testing.B, nRoutes int) {
 	if len(routeErrors) > 0 {
 		b.Errorf("Errors processing route file: %+v\n", routeErrors)
 	}
-	rrs := compiler.GetRouteRegexps(routes, []compiler.IncludeSpec{})
-	routesJson, _ := compiler.RouteRegexpsToJSON(&rrs, []compiler.IncludeSpec{})
+	rrs := compiler.GetRouteRegexps(routes, nil)
+	routesJson, _ := compiler.RouteRegexpsToJSON(&rrs, nil)
 	// use the line below to generate the files in js/bench_data, if they need to be updated.
 	//os.WriteFile(fmt.Sprintf("routes%v", nRoutes), []byte(routesJson), 0)
 	router, err := MakeRouter(routesJson, false)

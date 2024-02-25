@@ -256,9 +256,9 @@ The `-input` flag can be passed multiple times to generate output on the basis
 of multiple input files. The output obtained is essentialy the same as if the
 input files were concatenated into one. The only difference is that Claney
 considers the least indented route(s) in each file to be at the top level, even
-if the least indented route in one file is more indented than the least indented route
-in another. In other words, given the following two input files, the router recognizes
-`/foo` and `/bar`, not `/foo/bar`:
+if the least indented route in one file is more indented than the least indented
+route in another. In other words, given the following two input files, the
+router recognizes `/foo` and `/bar`, not `/foo/bar`:
 
 ```
 <input file 1>
@@ -272,38 +272,51 @@ in another. In other words, given the following two input files, the router reco
 
 ### Filtering the output
 
-The output may be filtered to include or exclude routes with certain methods or
-tags, e.g.:
+The output can be filtered using the `-filter` option to include or exclude
+routes with certain methods or tags. For example:
 
 ```sh
-claney -input input.routes -output output.json -include-tags 'manager-*' -exclude-method POST -exclude-method PUT -include-tags special-POST
+claney -input input.routes -output output.json -filter 'manager-*|api'
 ```
 
-The `-[in/ex]clude-tags` and `-[in/ex]clude-method` flags are interpreted in
-order for each route. In the example above, a given route is included if it has
-a tag matching the glob `manager-*`, then excluded if its method is `POST` or
-`PUT`, then included again if it has the `special-POST` tag. The ultimate fate
-of the route is decided by the last matching include or exclude flag. If the
-first flag in the sequence is an include then each route is excluded by default,
-whereas if the first flag is an exclude, each route is included by default.
+The filter expression `manager-*|api` includes only routes that have a tag that
+matches the glob `manager-*` or that have the `api` tag. The following operators
+can be used to contruct filter expressions:
+
+* `&` – and
+* `|` - or
+* `!` - not
+
+The `&` and `|` operators are left-associative and have equal precedence; `!`
+binds tighter. Parentheses may be used. For example, the following expression
+includes only those routes which have the `api` tag and which do not have the
+`client` or `employee` tag:
+
+```
+api&!(client|employee)
+```
+
+Methods can be specified by enclosing the name of the method in `[]`. For
+example, the following expression includes only PUT or POST routes with the
+`api` tag:
+
+```
+([PUT]|[POST])&api
+```
 
 In the case of routes with multiple methods, each method is treated
 independently for filtering. For example, for the route `foo [GET,POST] /foo`,
-the flag `-exclude-method POST` generates a router that recognizes `GET /foo`
+the option `-filter '[GET]'` generates a router that recognizes `GET /foo`
 but not `POST /foo`.
 
-The flag `-union` (which takes no argument) may be placed in the middle of a
-sequence of include and exclude flags to deliniate multiple independent
-sequences of include and exclude operations. For example, the following sequence
-of flags restricts the output to all routes that either have the tag `foo` or do
-not have the tag `bar`:
+A `\` can be used to escape spaces, special characters, and `*` within a glob.
+All special characters can be surrounded by whitespace, so that e.g. the
+following two expressions are valid and equivalent:
 
 ```
--include-tags foo -union -exclude-tags bar
+api&!(client|employee)
+api & !( client | employee )
 ```
-
-If `-union` were ommitted from the sequence above, the output would instead
-include all routes that have the tag `foo` and do not have the tag `bar`.
 
 ### Adding a prefix to the output
 
@@ -338,9 +351,9 @@ You can add logic in your router to 404 if the host doesn't match one of the
 router for each host:
 
 ```sh
-claney -input routes -include-tags 'host:host1.foo.com' -output just_host1.json
-claney -input routes -include-tags 'host:host2.foo.com' -output just_host2.json
-claney -input routes -include-tags 'host:*' -output all_hosts.json
+claney -input routes -filter 'host:host1.foo.com' -output just_host1.json
+claney -input routes -filter 'host:host2.foo.com' -output just_host2.json
+claney -input routes -filter 'host:*' -output all_hosts.json
 ```
 
 ## Case sensitivity

@@ -5,8 +5,6 @@ import (
 	"sort"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/addrummond/claney/glob"
 )
 
 type RouteInfo struct {
@@ -494,14 +492,14 @@ func familiesByConstantPortion(n *cpNode) []familyWithConstantPortion {
 	return fwcps
 }
 
-func filterTreeByIncludeSpecs(n *cpNode, includeSpecs []IncludeSpec) {
+func filterTreeByTags(n *cpNode, filter *TagExpr) {
 	// Mark all routes to be excluded and remove children of any wholly excluded
 	// subtrees.
 	var rec func(n *cpNode)
 	rec = func(n *cpNode) {
 		ci := 0
 		for _, c := range n.children {
-			if matchingSpec(includeSpecs, c.routeInfo.methods, c.routeInfo.tags) {
+			if EvalTagExpr(filter, c.routeInfo.tags, c.routeInfo.methods) {
 				n.children[ci] = c
 				ci++
 			} else {
@@ -538,10 +536,10 @@ func filterTreeByIncludeSpecs(n *cpNode, includeSpecs []IncludeSpec) {
 	excl(n)
 }
 
-func GetRouteRegexps(routes []RouteInfo, includeSpecs []IncludeSpec) routeRegexps {
+func GetRouteRegexps(routes []RouteInfo, filter *TagExpr) routeRegexps {
 	tree := getConstantPortionTree(routes)
 
-	filterTreeByIncludeSpecs(tree, includeSpecs)
+	filterTreeByTags(tree, filter)
 	optimizeConstantPortionTree(tree)
 
 	originalConstantPortionRegexp := getConstantPortionRegexp(tree)
@@ -610,14 +608,7 @@ const (
 	Union   InclusionStatus = iota
 )
 
-type IncludeSpec struct {
-	Include InclusionStatus
-	// One of these is "", the other is not (or both are "" for Union)
-	TagGlob string
-	Method  string
-}
-
-func RouteRegexpsToJSON(rrs *routeRegexps, includeSpecs []IncludeSpec) ([]byte, int) {
+func RouteRegexpsToJSON(rrs *routeRegexps, filter *TagExpr) ([]byte, int) {
 	// This function outputs the JSON directly without building an intermediate
 	// data structure. It's slightly more fiddly, but saves on unnecessary
 	// allocation.
@@ -653,7 +644,7 @@ func RouteRegexpsToJSON(rrs *routeRegexps, includeSpecs []IncludeSpec) ([]byte, 
 		out = append(out, `],"members":[`...)
 		nMembersOut := 0
 		for _, m := range g.members {
-			matchingMs := matchingMethods(includeSpecs, m.route.Route.methods, m.route.Route.tags)
+			matchingMs := matchingMethods(filter, m.route.Route.methods, m.route.Route.tags)
 			if len(matchingMs) == 0 {
 				continue
 			}
@@ -699,77 +690,10 @@ func RouteRegexpsToJSON(rrs *routeRegexps, includeSpecs []IncludeSpec) ([]byte, 
 	return out, nRoutesOut
 }
 
-func splitByUnion(specs []IncludeSpec) [][]IncludeSpec {
-	var rs [][]IncludeSpec
-	addNew := true
-	for _, s := range specs {
-		if s.Include == Union {
-			addNew = true
-		} else {
-			if addNew {
-				rs = append(rs, nil)
-			}
-			rs[len(rs)-1] = append(rs[len(rs)-1], s)
-			addNew = false
-		}
-	}
-	return rs
-}
-
-func matchingSpec(specs []IncludeSpec, methods map[string]struct{}, tags map[string]struct{}) bool {
-	disjuncts := splitByUnion(specs)
-	if len(disjuncts) == 0 {
-		return true
-	}
-	for _, c := range disjuncts {
-		if matchingSpecHelper(c, methods, tags) {
-			return true
-		}
-	}
-	return false
-}
-
-func matchingSpecHelper(specs []IncludeSpec, methods map[string]struct{}, tags map[string]struct{}) bool {
-	if len(specs) == 0 {
-		return true
-	}
-
-	// Include by default if first in sequence is exclude, or exclude by default
-	// if first in sequence is include.
-	included := specs[0].Include == Exclude
-
-	removedMethods := make(map[string]struct{})
-
-	for _, s := range specs {
-		if s.TagGlob != "" {
-			for t := range tags {
-				if glob.Glob(s.TagGlob, t) {
-					included = s.Include == Include
-					break
-				}
-			}
-		} else if s.Method != "" {
-			ucmeth := strings.ToUpper(s.Method)
-			if _, ok := methods[ucmeth]; ok {
-				if s.Include == Include {
-					included = true
-					delete(removedMethods, ucmeth)
-				} else {
-					removedMethods[ucmeth] = struct{}{}
-					included = len(removedMethods) != len(methods)
-				}
-			} else {
-				included = s.Include == Exclude
-			}
-		}
-	}
-	return included
-}
-
-func matchingMethods(specs []IncludeSpec, methods map[string]struct{}, tags map[string]struct{}) map[string]struct{} {
+func matchingMethods(filter *TagExpr, methods map[string]struct{}, tags map[string]struct{}) map[string]struct{} {
 	r := make(map[string]struct{})
 	for m, _ := range methods {
-		if matchingSpec(specs, map[string]struct{}{m: {}}, tags) {
+		if EvalTagExpr(filter, tags, map[string]struct{}{m: {}}) {
 			r[m] = struct{}{}
 		}
 	}
