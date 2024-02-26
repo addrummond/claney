@@ -1,7 +1,6 @@
 package compiler
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -85,7 +84,6 @@ func TestEvalTagExpr(t *testing.T) {
 			methods[t] = struct{}{}
 		}
 		expr, err := ParseTagExpr(tc.input)
-		fmt.Printf("DE: %v\n", debugPrintExpr(expr))
 		if err != nil {
 			t.Fatal(err)
 		}
