@@ -35,7 +35,6 @@ func main() {
 	inputFiles := &inputAccum{}
 	flag.Var(inputFiles, "input", "input file (default stdin)")
 	output := flag.String("output", "", "output file (default stdout)")
-	outputPrefix := flag.String("output-prefix", "", `add a prefix to the output (e.g. "export ROUTES=")`)
 	filter := flag.String("filter", "", "include only routes with tags that match the given expression")
 	flag.Parse()
 
@@ -61,7 +60,6 @@ func main() {
 		version:        *version,
 		inputFiles:     filenames,
 		output:         *output,
-		outputPrefix:   *outputPrefix,
 		filter:         *filter,
 		verbose:        *verbose,
 		allowUpperCase: *allowUpperCase,
@@ -75,7 +73,6 @@ type runParams struct {
 	version        bool
 	inputFiles     []string
 	output         string
-	outputPrefix   string
 	filter         string
 	verbose        bool
 	allowUpperCase bool
@@ -132,10 +129,13 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 	}
 
 	metadataOut := os.Stdout
-	metadataOutDescription := params.output
 	if params.output == "" {
 		metadataOut = os.Stderr
-		metadataOutDescription = "stdout"
+	}
+
+	metadataOutDescription := ""
+	if params.output != "" {
+		metadataOutDescription = " written to " + params.output
 	}
 
 	routes, errors := compiler.ProcessRouteFile(entries, params.inputFiles, params.nameSeparator, func(rwps []compiler.RouteWithParents) {
@@ -182,8 +182,6 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 	retCode := 0
 
 	err := params.withWriter(params.output, func(of io.Writer) {
-		_, _ = io.WriteString(of, params.outputPrefix)
-
 		_, err := of.Write(json)
 		if err != nil {
 			_, _ = params.fprintf(os.Stderr, "%v\n", err)
@@ -199,7 +197,7 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 		if params.output == "" {
 			_, _ = params.fprintf(metadataOut, "\n")
 		}
-		_, _ = params.fprintf(metadataOut, "%v %v written to %v\n", nRoutes, routesString, metadataOutDescription)
+		_, _ = params.fprintf(metadataOut, "%v %v%v\n", nRoutes, routesString, metadataOutDescription)
 
 		retCode = 0
 	})

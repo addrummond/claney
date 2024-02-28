@@ -27,7 +27,6 @@ func TestRunNoTags(t *testing.T) {
 	exitCode := run(runParams{
 		inputFiles:     []string{""},
 		output:         "",
-		outputPrefix:   "",
 		filter:         "",
 		verbose:        false,
 		allowUpperCase: false,
@@ -50,35 +49,11 @@ func TestRunNoTags(t *testing.T) {
 	}
 }
 
-func TestOutputPrefix(t *testing.T) {
-	var outb strings.Builder
-	exitCode := run(runParams{
-		inputFiles:     []string{""},
-		output:         "",
-		outputPrefix:   "export FOO = ",
-		filter:         "",
-		verbose:        false,
-		allowUpperCase: false,
-		withReader:     mockReader(exampleInput),
-		withWriter:     mockWriter(&outb),
-		fprintf:        dummyFprintf,
-		nameSeparator:  "/",
-	})
-	if exitCode != 0 {
-		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
-	}
-	out := outb.String()
-	if !strings.HasPrefix(out, "export FOO = ") {
-		t.Errorf("Output string lacked expected prefix")
-	}
-}
-
 func TestRunExcludeAllTags(t *testing.T) {
 	var outb strings.Builder
 	exitCode := run(runParams{
 		inputFiles:     []string{""},
 		output:         "",
-		outputPrefix:   "",
 		filter:         "man-*&!ap*",
 		verbose:        false,
 		allowUpperCase: false,
@@ -106,7 +81,6 @@ func TestRunIncludeOnlySomeTags(t *testing.T) {
 	exitCode := run(runParams{
 		inputFiles:     []string{""},
 		output:         "",
-		outputPrefix:   "",
 		filter:         "ap*",
 		verbose:        false,
 		allowUpperCase: false,
@@ -150,7 +124,6 @@ another /good/route
 	exitCode := run(runParams{
 		inputFiles:     []string{"file1", "file2"},
 		output:         "",
-		outputPrefix:   "",
 		filter:         "",
 		verbose:        false,
 		allowUpperCase: false,
@@ -187,7 +160,6 @@ r /
 	exitCode := run(runParams{
 		inputFiles:     []string{"file"},
 		output:         "",
-		outputPrefix:   "",
 		filter:         "",
 		verbose:        false,
 		allowUpperCase: false,
@@ -223,7 +195,6 @@ r /
 	exitCode := run(runParams{
 		inputFiles:     []string{"file"},
 		output:         "",
-		outputPrefix:   "",
 		filter:         "",
 		verbose:        false,
 		allowUpperCase: true,
@@ -241,7 +212,7 @@ r /
 	}
 
 	consoleOut := consoleOutb.String()
-	const expectedConsoleOut = "\n1 route written to stdout\n"
+	const expectedConsoleOut = "\n1 route\n"
 
 	if consoleOut != expectedConsoleOut {
 		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
@@ -260,7 +231,6 @@ r /
 	exitCode := run(runParams{
 		inputFiles:     []string{"file"},
 		output:         "",
-		outputPrefix:   "",
 		filter:         "",
 		verbose:        false,
 		allowUpperCase: false,
@@ -299,7 +269,6 @@ func TestOverlapErrorReportingSimpleCase(t *testing.T) {
 	exitCode := run(runParams{
 		inputFiles:     []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"},
 		output:         "",
-		outputPrefix:   "",
 		filter:         "",
 		verbose:        false,
 		allowUpperCase: false,
@@ -338,7 +307,6 @@ func TestOverlapErrorReportingMultiline(t *testing.T) {
 	exitCode := run(runParams{
 		inputFiles:     []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"},
 		output:         "",
-		outputPrefix:   "",
 		filter:         "",
 		verbose:        false,
 		allowUpperCase: false,
