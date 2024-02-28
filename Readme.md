@@ -314,8 +314,8 @@ All special characters can be surrounded by whitespace, so that e.g. the
 following two expressions are valid and equivalent:
 
 ```
-api&!(client|employee)
-api & !( client | employee )
+api&!(client|[GET])
+api & !( client | [ GET ] )
 ```
 
 ## Hosts
