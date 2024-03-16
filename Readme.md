@@ -310,12 +310,12 @@ the option `-filter '[GET]'` generates a router that recognizes `GET /foo`
 but not `POST /foo`.
 
 A `\` can be used to escape spaces, special characters, and `*` within a glob.
-All special characters can be surrounded by whitespace, so that e.g. the
-following two expressions are valid and equivalent:
+Globs cannot be used with methods. All special characters can be surrounded by
+whitespace, so that e.g. the following two expressions are valid and equivalent:
 
 ```
 api&!(client|[GET])
-api & !( client | [ GET ] )
+api & ! ( client | [ GET ] )
 ```
 
 ## Hosts
