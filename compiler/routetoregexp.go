@@ -692,7 +692,7 @@ func RouteRegexpsToJSON(rrs *routeRegexps, filter *TagExpr) ([]byte, int) {
 
 func matchingMethods(filter *TagExpr, methods map[string]struct{}, tags map[string]struct{}) map[string]struct{} {
 	r := make(map[string]struct{})
-	for m, _ := range methods {
+	for m := range methods {
 		if EvalTagExpr(filter, tags, map[string]struct{}{m: {}}) {
 			r[m] = struct{}{}
 		}
