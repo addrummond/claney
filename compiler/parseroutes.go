@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"unicode"
@@ -665,6 +666,14 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 	}
 
 	return entries, errors
+}
+
+func badFunc() {
+	f, err := os.OpenFile("foo", 0, os.ModeAppend)
+	if err != nil {
+		panic(err)
+	}
+	_ = f
 }
 
 func physicalLineColumn(lineStarts []int, offset int) int {
