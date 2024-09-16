@@ -255,7 +255,7 @@ inputs.
 The `-input` flag can be passed multiple times to generate output on the basis
 of multiple input files. The output obtained is essentialy the same as if the
 input files were concatenated into one. The only difference is that Claney
-considers the least indented route(s) in each file to be at the top level, even
+considers the least indented routes in each file to be at the top level, even
 if the least indented route in one file is more indented than the least indented
 route in another. In other words, given the following two input files, the
 router recognizes `/foo` and `/bar`, not `/foo/bar`:
