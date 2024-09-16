@@ -668,14 +668,6 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 	return entries, errors
 }
 
-func badFunc() {
-	f, err := os.OpenFile("foo", 0, os.ModeAppend)
-	if err != nil {
-		panic(err)
-	}
-	_ = f
-}
-
 func physicalLineColumn(lineStarts []int, offset int) int {
 	// Could use binary search here, but this is not a performance-critical path
 	// (used only in error reporting), and very long splices should be uncommon.
