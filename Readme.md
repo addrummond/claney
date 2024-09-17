@@ -175,16 +175,16 @@ Named parameters are introduced using the `:` character. Named parameters
 * can appear anywhere within a URL pattern, and
 * are matched greedily (except in the case of rest parameters – see below).
 
-#### String parameters
+#### Named string parameters
 
 These can be written `:foo`, or `:{foo bar}` to allow whitespace and other
 special characters.
 
-#### Integer parameters
+#### Named integer parameters
 
 Integer parameters are written `:#foo` or `:#{foo bar}`.
 
-#### Rest parameters
+#### Named rest parameters
 
 Rest parameters are written `:**foo` or `:**{foo bar}`. Unlike normal
 parameters, rest parameters can match strings incuding `/` characters.
@@ -196,7 +196,7 @@ starts with `/foo/` and ends with `/bar` – so long as a `rest` can be assigned
 suitable value. For example, `/foo/amp/bar` matches, but `/foo/bar` does not,
 and neither does `/foo//bar`.
 
-#### Parameter examples
+#### Examples of named parameters
 
 The following are some examples of URL patterns containing named parameters:
 
