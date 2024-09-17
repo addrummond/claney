@@ -324,13 +324,15 @@ Claney does not directly support matching on hostnames. If your routing involves
 a complex interaction between hosts and paths, Claney is probably not a good
 fit.
 
-For simple cases there are two workable options:
+For simple cases there are three options:
 
 * Define a separate router for each host. This makes sense for cases such as
   `foo.com` and `api.foo.com`.
+* Add the hostname to the beginning of the path before matching (e.g.
+  `/foo.com/home`).
 * Tag each route with the host(s) where it is valid.
 
-An example of the second option is the following:
+An example of the third option is the following:
 
 ```
 routeA /foo [host:host1.foo.com, host:host2.foo.com]
