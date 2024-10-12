@@ -112,22 +112,17 @@ func run(params runParams) int {
 	return exitCode
 }
 
-func runHelper(params runParams, inputReaders []io.Reader) int {
-	casePolicy := compiler.DisallowUpperCase
-	if params.allowUpperCase {
-		casePolicy = compiler.AllowUpperCase
-	}
-
-	entries, errors := compiler.ParseRouteFiles(params.inputFiles, inputReaders, casePolicy)
-
+func parseFancyInputFiles(inputFiles []string, inputReaders []io.Reader, casePolicy compiler.CasePolicy, nameSeparator string) (routes []compiler.CompiledRoute, errors []compiler.RouteError) {
+	var entries [][]compiler.RouteFileEntry
+	entries, errors = compiler.ParseRouteFiles(inputFiles, inputReaders, casePolicy)
 	if len(errors) > 0 {
-		sortRouteErrors(errors)
-		for _, e := range errors {
-			_, _ = params.fprintf(os.Stderr, "%v\n", e)
-		}
-		return 1
+		return
 	}
+	routes, errors = compiler.ProcessRouteFiles(entries, inputFiles, nameSeparator)
+	return
+}
 
+func runHelper(params runParams, inputReaders []io.Reader) int {
 	metadataOut := os.Stdout
 	if params.output == "" {
 		metadataOut = os.Stderr
@@ -138,41 +133,30 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 		metadataOutDescription = " written to " + params.output
 	}
 
-	routes, errors := compiler.ProcessRouteFile(entries, params.inputFiles, params.nameSeparator, func(rwps []compiler.RouteWithParents) {
-		if params.verbose {
-			_, _ = params.fprintf(metadataOut, "WARNING:\n")
-			_, _ = params.fprintf(metadataOut, "  Group of %v routes that must be checked pairwise for overlaps.\n", len(rwps))
-			_, _ = params.fprintf(metadataOut, "  This occurs if the routes lack a unique constant prefix or suffix.\n")
-			_, _ = params.fprintf(metadataOut, "  Pairwise overlap checks are slow.\n")
-			_, _ = params.fprintf(metadataOut, "  Routes in group:\n")
-
-			sorted := make([]*compiler.RouteInfo, len(rwps))
-			for i := range rwps {
-				sorted[i] = rwps[i].Route
-			}
-			sort.Slice(sorted, func(i, j int) bool {
-				if sorted[i].Filename == sorted[j].Filename {
-					return sorted[i].Line < sorted[j].Line
-				}
-				return sorted[i].Filename < sorted[j].Filename
-			})
-			for _, r := range sorted {
-				_, _ = params.fprintf(metadataOut, "    %v:%v: %v\n", r.Filename, r.Line, r.Name)
-			}
-		}
-	})
-
-	if len(errors) > 0 {
-		sortRouteErrors(errors)
-		for _, e := range errors {
-			_, _ = params.fprintf(os.Stderr, "%v\n", e)
-		}
-		return 1
+	casePolicy := compiler.DisallowUpperCase
+	if params.allowUpperCase {
+		casePolicy = compiler.AllowUpperCase
 	}
 
 	filter, filterErr := compiler.ParseTagExpr(params.filter)
 	if filterErr != nil {
 		params.fprintf(os.Stderr, "Error parsing value of -filter option:\n%v\n", filterErr)
+		return 1
+	}
+
+	routes, errors := parseFancyInputFiles(params.inputFiles, inputReaders, casePolicy, params.nameSeparator)
+	errors = append(errors, compiler.CheckForGroupErrors(routes)...)
+
+	if len(errors) > 0 {
+		sortRouteErrors(errors)
+		for _, e := range errors {
+			if params.verbose && e.Kind == compiler.WarningBigGroup {
+				printBigGroupWarning(params, metadataOut, e)
+			}
+			if params.verbose || e.Kind&compiler.RouteWarning == 0 {
+				_, _ = params.fprintf(os.Stderr, "%v\n", e)
+			}
+		}
 		return 1
 	}
 
@@ -207,6 +191,29 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 	}
 
 	return retCode
+}
+
+func printBigGroupWarning(params runParams, metadataOut *os.File, err compiler.RouteError) {
+	sorted := make([]*compiler.CompiledRoute, len(err.Group))
+	for i := range err.Group {
+		sorted[i] = err.Group[i].Route
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Info.Filename == sorted[j].Info.Filename {
+			return sorted[i].Info.Line < sorted[j].Info.Line
+		}
+		return sorted[i].Info.Filename < sorted[j].Info.Filename
+	})
+
+	_, _ = params.fprintf(metadataOut, "WARNING: Big group\n")
+	_, _ = params.fprintf(metadataOut, "  Group of %v routes that must be checked pairwise for overlaps.\n", len(err.Group))
+	_, _ = params.fprintf(metadataOut, "  This occurs if the routes lack a unique constant prefix or suffix.\n")
+	_, _ = params.fprintf(metadataOut, "  Pairwise overlap checks are slow.\n")
+	_, _ = params.fprintf(metadataOut, "  Routes in group:\n")
+
+	for _, r := range sorted {
+		_, _ = params.fprintf(metadataOut, "    %v:%v: %v\n", r.Info.Filename, r.Info.Line, r.Info.Name)
+	}
 }
 
 func withReader(input string, f func(io.Reader)) error {

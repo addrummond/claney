@@ -219,7 +219,7 @@ func parseRoute(route string) []routeElement {
 					i++
 					if i == len(route) {
 						sb.WriteByte('\\')
-					} else if route[i] == '\\' || route[i] == ':' || route[i] == '!' || route[i] == '[' || route[i] == ']' || route[i] == '*' {
+					} else if route[i] == ':' || route[i] == '!' || route[i] == '[' || route[i] == ']' || route[i] == '*' {
 						sb.WriteByte(route[i])
 						i++
 					} else {
@@ -301,30 +301,45 @@ type RouteFileEntry struct {
 
 type RouteErrorKind int
 
+const RouteWarning RouteErrorKind = (1 << 30)
+
 const (
-	MissingNameOrRoute                RouteErrorKind = iota
-	DuplicateRouteName                RouteErrorKind = iota
-	RootMustStartWithSlash            RouteErrorKind = iota
-	OverlappingRoutes                 RouteErrorKind = iota
-	MisplacedDot                      RouteErrorKind = iota
-	RouteContainsBadCodePoint         RouteErrorKind = iota
-	QuestionMarkInRoute               RouteErrorKind = iota
-	HashInRoute                       RouteErrorKind = iota
-	WhitespaceInRoute                 RouteErrorKind = iota
-	IllegalCharInParamName            RouteErrorKind = iota
-	IllegalBackslashEscape            RouteErrorKind = iota
-	IllegalBackslashEscapeInRouteName RouteErrorKind = iota
-	NontabspaceIndentationCharacter   RouteErrorKind = iota
-	BadCharacterInMethodName          RouteErrorKind = iota
-	MissingCommaBetweenMethodNames    RouteErrorKind = iota
-	TwoCommasInSequenceInMethodNames  RouteErrorKind = iota
-	IndentLessThanFirstLine           RouteErrorKind = iota
-	OnlyNoTrailingSlash               RouteErrorKind = iota
-	NoTrailingSlashAfterSlash         RouteErrorKind = iota
-	MultipleSlashesInARow             RouteErrorKind = iota
-	UpperCaseCharInRoute              RouteErrorKind = iota
-	IOError                           RouteErrorKind = iota
-	EmptyMethodList                   RouteErrorKind = iota
+	MissingNameOrRoute RouteErrorKind = iota
+	DuplicateRouteName
+	RootMustStartWithSlash
+	OverlappingRoutes
+	MisplacedDot
+	RouteContainsBadCodePoint
+	QuestionMarkInRoute
+	HashInRoute
+	WhitespaceInRoute
+	IllegalCharInParamName
+	IllegalBackslashEscape
+	IllegalBackslashEscapeInRouteName
+	NontabspaceIndentationCharacter
+	BadCharacterInMethodName
+	MissingCommaBetweenMethodNames
+	TwoCommasInSequenceInMethodNames
+	IndentLessThanFirstLine
+	OnlyNoTrailingSlash
+	NoTrailingSlashAfterSlash
+	MultipleSlashesInARow
+	UpperCaseCharInRoute
+	IOError
+	EmptyMethodList
+	ExpectedJSONRoutesToBeArray
+	ExpectedJSONRouteFileEntryToBeObject
+	UnexpectedKeyInJSONRouteFile
+	JSONRouteMissingNameField
+	JSONRouteMissingPatternField
+	// TODO rename below to have JSON in names
+	UnexpectedTokenInJSONRouteFile
+	NoSlashInsideJSONRoutePatternElement
+	FirstMemberOfPatternElementMustBeString
+	BadFirstMemberOfPatternElement
+	UnexpectedPatternElementMember
+	ParameterNameMustBeString
+	WarningBigGroup = iota | RouteWarning
 )
 
 type RouteError struct {
@@ -335,6 +350,7 @@ type RouteError struct {
 	OtherLine     int
 	IOError       error
 	Filenames     []string
+	Group         []RouteWithParents
 }
 
 func (e RouteError) Error() string {
@@ -383,7 +399,31 @@ func (e RouteError) Error() string {
 	case IOError:
 		desc = fmt.Sprintf("IO Error: %v", e.IOError)
 	case EmptyMethodList:
-		desc = "list of methods for route is empty"
+		desc = "Empty method list"
+	case ExpectedJSONRoutesToBeArray:
+		desc = "Expected JSON route file to be array"
+	case ExpectedJSONRouteFileEntryToBeObject:
+		desc = "Expected route file entry to be object in JSON route file"
+	case UnexpectedKeyInJSONRouteFile:
+		desc = "Unexpected key or key value type in JSON route file"
+	case JSONRouteMissingNameField:
+		desc = "Route missing name field in JSON route file"
+	case JSONRouteMissingPatternField:
+		desc = "Route missing pattern field in JSON route file"
+	case UnexpectedTokenInJSONRouteFile:
+		desc = "Unexpected token in JSON route file"
+	case NoSlashInsideJSONRoutePatternElement:
+		desc = "No '/' allowed inside JSON route pattern element"
+	case FirstMemberOfPatternElementMustBeString:
+		desc = "First member of pattern element must be string"
+	case BadFirstMemberOfPatternElement:
+		desc = "Bad first member of pattern element"
+	case UnexpectedPatternElementMember:
+		desc = "Unexpected pattern element member"
+	case ParameterNameMustBeString:
+		desc = "Parameter name must be string"
+	case WarningBigGroup:
+		desc = "Big group"
 	default:
 		panic(fmt.Sprintf("unrecognized routeRrrorKind %v", int(e.Kind)))
 	}
@@ -463,19 +503,19 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 			nextr, sz := utf8.DecodeRuneInString(wholeLine[i:])
 			if unicode.IsSpace(nextr) {
 				if nextr != ' ' && nextr != '\t' {
-					errors = append(errors, RouteError{NontabspaceIndentationCharacter, sourceLine, -1, "", 0, nil, []string{}})
+					errors = append(errors, RouteError{NontabspaceIndentationCharacter, sourceLine, -1, "", 0, nil, nil, nil})
 				}
 				indent++
 				i += sz
 			} else if badCodePoint(nextr) {
-				errors = append(errors, RouteError{IllegalBackslashEscapeInRouteName, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{IllegalBackslashEscapeInRouteName, sourceLine, -1, "", 0, nil, nil, nil})
 				i += sz
 			} else {
 				break
 			}
 		}
 		if indent < initialIndent {
-			errors = append(errors, RouteError{IndentLessThanFirstLine, sourceLine, -1, "", 0, nil, []string{}})
+			errors = append(errors, RouteError{IndentLessThanFirstLine, sourceLine, -1, "", 0, nil, nil, nil})
 			continue
 		}
 		if initialIndent == -1 {
@@ -485,7 +525,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		// Is it '.'?
 		if isDot(wholeLine) {
 			if len(entries) == 0 || entries[len(entries)-1].indent >= indent {
-				errors = append(errors, RouteError{MisplacedDot, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{MisplacedDot, sourceLine, -1, "", 0, nil, nil, nil})
 			}
 			dotLevel = indent
 			continue
@@ -506,13 +546,13 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					nameB.WriteRune(rn)
 					i += sz + 1
 					if badCodePoint(rn) {
-						errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, []string{}})
+						errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
 					}
 					if !unicode.IsSpace(rn) {
-						errors = append(errors, RouteError{IllegalBackslashEscapeInRouteName, sourceLine, -1, "", 0, nil, []string{}})
+						errors = append(errors, RouteError{IllegalBackslashEscapeInRouteName, sourceLine, -1, "", 0, nil, nil, nil})
 					}
 				} else {
-					errors = append(errors, RouteError{IllegalBackslashEscapeInRouteName, sourceLine, -1, "", 0, nil, []string{}})
+					errors = append(errors, RouteError{IllegalBackslashEscapeInRouteName, sourceLine, -1, "", 0, nil, nil, nil})
 					i++
 				}
 			} else {
@@ -522,7 +562,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					break
 				}
 				if badCodePoint(rn) {
-					errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, []string{}})
+					errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
 				} else {
 					nameB.WriteRune(rn)
 				}
@@ -533,7 +573,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		for i < len(wholeLine) {
 			rn, sz := utf8.DecodeRuneInString(wholeLine[i:])
 			if badCodePoint(rn) {
-				errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
 			}
 			if !unicode.IsSpace(rn) {
 				break
@@ -542,7 +582,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		}
 
 		if i >= len(wholeLine) {
-			errors = append(errors, RouteError{MissingNameOrRoute, firstSourceLineOfSplice, -1, "", 0, nil, []string{}})
+			errors = append(errors, RouteError{MissingNameOrRoute, firstSourceLineOfSplice, -1, "", 0, nil, nil, nil})
 			continue
 		}
 
@@ -563,20 +603,20 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					}
 					if rn == ',' {
 						if foundComma {
-							errors = append(errors, RouteError{TwoCommasInSequenceInMethodNames, sourceLine, -1, "", 0, nil, []string{}})
+							errors = append(errors, RouteError{TwoCommasInSequenceInMethodNames, sourceLine, -1, "", 0, nil, nil, nil})
 						}
 						foundComma = true
 					}
 				} else if badCodePoint(rn) {
-					errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, []string{}})
+					errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
 				} else if (rn >= 'A' && rn <= 'Z') || (rn >= 'a' || rn <= 'z') { // ASCII letters only for method names
 					if len(methods) > 0 && currentMethod.Len() == 0 && !foundComma {
-						errors = append(errors, RouteError{MissingCommaBetweenMethodNames, sourceLine, -1, "", 0, nil, []string{}})
+						errors = append(errors, RouteError{MissingCommaBetweenMethodNames, sourceLine, -1, "", 0, nil, nil, nil})
 					}
 					foundComma = false
 					currentMethod.WriteRune(rn)
 				} else {
-					errors = append(errors, RouteError{BadCharacterInMethodName, sourceLine, -1, "", 0, nil, []string{}})
+					errors = append(errors, RouteError{BadCharacterInMethodName, sourceLine, -1, "", 0, nil, nil, nil})
 				}
 
 				if rn == ']' {
@@ -586,7 +626,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		}
 		if len(methods) == 0 {
 			if explicitMethodListPresent {
-				errors = append(errors, RouteError{EmptyMethodList, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{EmptyMethodList, sourceLine, -1, "", 0, nil, nil, nil})
 			}
 			methods["GET"] = struct{}{}
 		}
@@ -594,7 +634,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		for i < len(wholeLine) {
 			rn, sz := utf8.DecodeRuneInString(wholeLine[i:])
 			if badCodePoint(rn) {
-				errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
 			}
 			if !unicode.IsSpace(rn) {
 				break
@@ -612,7 +652,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		validationErrorKinds := validateRouteElems(initialIndent, indent, pattern)
 		if len(validationErrorKinds) > 0 {
 			for _, k := range validationErrorKinds {
-				errors = append(errors, RouteError{k, firstSourceLineOfSplice, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{k, firstSourceLineOfSplice, -1, "", 0, nil, nil, nil})
 			}
 			continue
 		}
@@ -623,21 +663,21 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 				if casePolicy == DisallowUpperCase {
 					if lci := containsNonLowerCase(elem.value); lci != -1 {
 						colZeroOffset := elem.col + lci + patternStart
-						errors = append(errors, RouteError{UpperCaseCharInRoute, sourceLine, physicalLineColumn(lineStarts, colZeroOffset) + 1, "", 0, nil, []string{}})
+						errors = append(errors, RouteError{UpperCaseCharInRoute, sourceLine, physicalLineColumn(lineStarts, colZeroOffset) + 1, "", 0, nil, nil, nil})
 					}
 				}
 			case illegalCodePoint:
-				errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
 			case illegalQuestionMark:
-				errors = append(errors, RouteError{QuestionMarkInRoute, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{QuestionMarkInRoute, sourceLine, -1, "", 0, nil, nil, nil})
 			case illegalHash:
-				errors = append(errors, RouteError{HashInRoute, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{HashInRoute, sourceLine, -1, "", 0, nil, nil, nil})
 			case illegalWhitespace:
-				errors = append(errors, RouteError{WhitespaceInRoute, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{WhitespaceInRoute, sourceLine, -1, "", 0, nil, nil, nil})
 			case illegalCharInParamName:
-				errors = append(errors, RouteError{IllegalCharInParamName, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{IllegalCharInParamName, sourceLine, -1, "", 0, nil, nil, nil})
 			case illegalBackslashEscape:
-				errors = append(errors, RouteError{IllegalBackslashEscape, sourceLine, -1, "", 0, nil, []string{}})
+				errors = append(errors, RouteError{IllegalBackslashEscape, sourceLine, -1, "", 0, nil, nil, nil})
 			}
 		}
 
@@ -661,7 +701,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 	}
 
 	if err := scanner.Err(); err != nil {
-		errors = append(errors, RouteError{IOError, sourceLine, -1, "", 0, nil, []string{}})
+		errors = append(errors, RouteError{IOError, sourceLine, -1, "", 0, nil, nil, nil})
 	}
 
 	return entries, errors

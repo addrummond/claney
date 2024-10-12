@@ -45,6 +45,13 @@ func TestParseRoutes(t *testing.T) {
 	testParseRoute(t, "/foo/\\*", "/ 'foo' / '*'")
 }
 
+func TestParseRouteIllegalBackslash(t *testing.T) {
+	elems := parseRoute("/foo\\//bar")
+	if len(elems) != 6 || elems[2].kind != illegalBackslashEscape {
+		t.Fatalf("Unexpected result %+v", elems)
+	}
+}
+
 func testParseRoute(t *testing.T, route, expectedOutput string) {
 	output := debugPrintParsedRoute(parseRoute(route))
 	if output != expectedOutput {

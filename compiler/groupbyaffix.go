@@ -105,19 +105,19 @@ func deterministicChildIter[Assoc any](node *trieNode[Assoc], f func(*trieNode[A
 	}
 }
 
-func getConstishPrefix(r *RouteInfo, parents []*RouteInfo) string {
+func getConstishPrefix(r *CompiledRoute, parents []*CompiledRoute) string {
 	var pref strings.Builder
 	lastWasSlash := false
 	for _, p := range parents {
 		writeByteToAffix(&pref, &lastWasSlash, '/')
-		writeStringToAffix(&pref, &lastWasSlash, p.constishPrefix)
+		writeStringToAffix(&pref, &lastWasSlash, p.Compiled.ConstishPrefix)
 		if !allConst(p) {
 			return removeTrailingSlash(pref.String())
 		}
 	}
 
 	writeByteToAffix(&pref, &lastWasSlash, '/')
-	writeStringToAffix(&pref, &lastWasSlash, r.constishPrefix)
+	writeStringToAffix(&pref, &lastWasSlash, r.Compiled.ConstishPrefix)
 	return removeTrailingSlash(pref.String())
 }
 
@@ -126,20 +126,20 @@ func groupByConstishPrefix(rwps []RouteWithParents) [][]RouteWithParents {
 	return groupByX(rwps, getConstishPrefix)
 }
 
-func getConstishSuffix(r *RouteInfo, parents []*RouteInfo) string {
+func getConstishSuffix(r *CompiledRoute, parents []*CompiledRoute) string {
 	var suff strings.Builder
 	lastWashSlash := false
 	// This is not unicode correct, but we don't care for this purpose.
-	for i := len(r.constishSuffix) - 1; i >= 0; i-- {
-		writeByteToAffix(&suff, &lastWashSlash, r.constishSuffix[i])
+	for i := len(r.Compiled.ConstishSuffix) - 1; i >= 0; i-- {
+		writeByteToAffix(&suff, &lastWashSlash, r.Compiled.ConstishSuffix[i])
 	}
 	if allConst(r) {
 		writeByteToAffix(&suff, &lastWashSlash, '/')
 		for i := len(parents) - 1; i >= 0; i-- {
 			p := parents[i]
 			// This is not unicode correct, but we don't care for this purpose
-			for i := len(p.constishSuffix) - 1; i >= 0; i-- {
-				writeByteToAffix(&suff, &lastWashSlash, p.constishSuffix[i])
+			for i := len(p.Compiled.ConstishSuffix) - 1; i >= 0; i-- {
+				writeByteToAffix(&suff, &lastWashSlash, p.Compiled.ConstishSuffix[i])
 			}
 			writeByteToAffix(&suff, &lastWashSlash, '/')
 			if !allConst(p) {
@@ -163,8 +163,8 @@ func groupByConstishSuffix(rwps []RouteWithParents) [][]RouteWithParents {
 	return groupByX(rwps, getConstishSuffix)
 }
 
-func allConst(r *RouteInfo) bool {
-	for _, elem := range r.elems {
+func allConst(r *CompiledRoute) bool {
+	for _, elem := range r.Compiled.Elems {
 		if !(elem.kind == slash || elem.kind == constant) {
 			return false
 		}
@@ -192,12 +192,12 @@ func writeStringToAffix(sb *strings.Builder, lastWasSlash *bool, s string) {
 	}
 }
 
-func groupByX(rwps []RouteWithParents, getGroupString func(*RouteInfo, []*RouteInfo) string) [][]RouteWithParents {
+func groupByX(rwps []RouteWithParents, getGroupString func(*CompiledRoute, []*CompiledRoute) string) [][]RouteWithParents {
 	var trie trieNode[RouteWithParents]
 	pool := make([]trieNode[RouteWithParents], 0)
 
 	for _, rwp := range rwps {
-		if !rwp.Route.terminal {
+		if !rwp.Route.Info.Terminal {
 			continue
 		}
 

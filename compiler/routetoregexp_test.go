@@ -11,9 +11,9 @@ import (
 
 func TestRouteToRegexp(t *testing.T) {
 	ri := routeToRegexps(parseRoute("/foo/:bar/amp"))
-	if !(reflect.DeepEqual(ri.elems, []routeElement{{constant, "foo", 1}, {slash, "", 4}, {parameter, "bar", 5}, {slash, "", 9}, {constant, "amp", 10}}) &&
-		ri.constantPortion == "foo//amp" && ri.nGroups == 1 &&
-		reflect.DeepEqual(ri.paramGroupNumbers, map[string]int{"bar": 1})) {
+	if !(reflect.DeepEqual(ri.Elems, []routeElement{{constant, "foo", 1}, {slash, "", 4}, {parameter, "bar", 5}, {slash, "", 9}, {constant, "amp", 10}}) &&
+		ri.ConstantPortion == "foo//amp" && ri.NGroups == 1 &&
+		reflect.DeepEqual(ri.ParamGroupNumbers, map[string]int{"bar": 1})) {
 		t.Errorf("Unexpected return value of routeToRegexps: %+v\n", ri)
 	}
 }
@@ -24,7 +24,7 @@ func TestProcessRouteFileNoDuplicateRouteNamesOkCase(t *testing.T) {
 	if len(errs) > 0 {
 		t.Errorf("%+v\n", errs)
 	}
-	_, errs = ProcessRouteFile([][]RouteFileEntry{r}, []string{""}, "/", func([]RouteWithParents) {})
+	_, errs = ProcessRouteFiles([][]RouteFileEntry{r}, []string{""}, "/")
 	if len(errs) != 0 {
 		t.Errorf("Expected no errors, got %+v\n", errs)
 	}
@@ -36,7 +36,7 @@ func TestProcessRouteFileNoDuplicateRouteNamesBadDuplicate(t *testing.T) {
 	if len(errs) > 0 {
 		t.Errorf("%+v\n", errs)
 	}
-	_, errs = ProcessRouteFile([][]RouteFileEntry{r}, []string{""}, "/", func([]RouteWithParents) {})
+	_, errs = ProcessRouteFiles([][]RouteFileEntry{r}, []string{""}, "/")
 	if len(errs) != 1 {
 		t.Errorf("Expected one error, got %+v\n", errs)
 		return
@@ -81,7 +81,7 @@ func TestProcessRouteFile(t *testing.T) {
 	if len(errs) > 0 {
 		t.Errorf("%+v\n", errs)
 	}
-	routes, errs := ProcessRouteFile([][]RouteFileEntry{r}, []string{""}, "/", func([]RouteWithParents) {})
+	routes, errs := ProcessRouteFiles([][]RouteFileEntry{r}, []string{""}, "/")
 	if len(errs) != 0 {
 		t.Errorf("%+v\n", errs)
 	}
@@ -645,15 +645,15 @@ func TestOverlapDetection(t *testing.T) {
 }
 
 func TestDisjoinRegexpComplex(t *testing.T) {
-	parents := []*RouteInfo{{Name: "xx", matchRegexp: "PREFIX\\/"}}
+	parents := []*CompiledRoute{{Info: RouteInfo{Name: "xx"}, Compiled: RouteRegexp{MatchRegexp: "PREFIX\\/"}}}
 
 	routes := []*RouteWithParents{
 		makeSimpleRouteWithParents("foo", "a", parents),
 		makeSimpleRouteWithParents("bar$fug$", "b", parents),
-		makeSimpleRouteWithParents("amp", "d", []*RouteInfo{}),
+		makeSimpleRouteWithParents("amp", "d", []*CompiledRoute{}),
 		makeSimpleRouteWithParents("one", "e", parents),
-		makeSimpleRouteWithParents("two$", "f", []*RouteInfo{}),
-		makeSimpleRouteWithParents("three", "g", []*RouteInfo{}),
+		makeSimpleRouteWithParents("two$", "f", []*CompiledRoute{}),
+		makeSimpleRouteWithParents("three", "g", []*CompiledRoute{}),
 	}
 
 	testDisjoinRegexp(
@@ -777,8 +777,8 @@ func TestConstantPortion(t *testing.T) {
 
 	for _, c := range cases {
 		ri := routeToRegexps(parseRoute(c.pattern))
-		if ri.constantPortion != c.expectedCp {
-			t.Errorf("Expected %v to have constant portion %v, but got %v\n", c.pattern, c.expectedCp, ri.constantPortion)
+		if ri.ConstantPortion != c.expectedCp {
+			t.Errorf("Expected %v to have constant portion %v, but got %v\n", c.pattern, c.expectedCp, ri.ConstantPortion)
 		}
 	}
 }
@@ -833,15 +833,15 @@ func testDisjoinRegexp(t *testing.T, rs []*RouteWithParents, expected string, pa
 func getSimpleRouteRegexps(elems []routeElement) (string, string, []int) {
 	ri := routeToRegexps(elems)
 	pgns := make([]int, 0)
-	for _, n := range ri.paramGroupNumbers {
+	for _, n := range ri.ParamGroupNumbers {
 		pgns = append(pgns, n)
 	}
 	sort.Ints(pgns)
-	cpre := ri.constantPortionRegexp(0)
-	return "^" + cpre + "$", "^" + ri.matchRegexp + "$", pgns
+	cpre := ri.ConstantPortionRegexp(0)
+	return "^" + cpre + "$", "^" + ri.MatchRegexp + "$", pgns
 }
 
-func makeSimpleRouteWithParents(regexp, name string, parents []*RouteInfo) *RouteWithParents {
+func makeSimpleRouteWithParents(regexp, name string, parents []*CompiledRoute) *RouteWithParents {
 	nGroups := 0
 	paramGroupNumbers := make(map[string]int)
 
@@ -861,11 +861,13 @@ func makeSimpleRouteWithParents(regexp, name string, parents []*RouteInfo) *Rout
 
 	return &RouteWithParents{
 		Parents: parents,
-		Route: &RouteInfo{
-			Name:              name,
-			matchRegexp:       re.String(),
-			nGroups:           nGroups,
-			paramGroupNumbers: paramGroupNumbers,
+		Route: &CompiledRoute{
+			Info: RouteInfo{Name: name},
+			Compiled: RouteRegexp{
+				MatchRegexp:       re.String(),
+				NGroups:           nGroups,
+				ParamGroupNumbers: paramGroupNumbers,
+			},
 		},
 	}
 }
@@ -873,15 +875,19 @@ func makeSimpleRouteWithParents(regexp, name string, parents []*RouteInfo) *Rout
 func assertOverlap(t *testing.T, line1, line2 int, routeFile string) {
 	entries, errors := ParseRouteFile(strings.NewReader(routeFile), DisallowUpperCase)
 	if len(errors) > 0 {
-		t.Errorf("Errors parsing route file: %+v\nRoutes:\n%v\n", errors, routeFile)
+		t.Fatalf("Errors parsing route file: %+v\nRoutes:\n%v\n", errors, routeFile)
 		return
 	}
-	_, routeErrors := ProcessRouteFile([][]RouteFileEntry{entries}, []string{""}, "/", func([]RouteWithParents) {})
-	if len(routeErrors) != 1 {
-		t.Errorf("Expecting to get one route error with an overlap, got %v.\nRoutes:\n%v\n", len(routeErrors), routeFile)
+	routes, routeErrors := ProcessRouteFiles([][]RouteFileEntry{entries}, []string{""}, "/")
+	if len(routeErrors) != 0 {
+		t.Fatalf("Expecting to get no errors back from ProcessRouteFiles, got %v.\nRoutes:\n%v\n", len(routeErrors), routeFile)
 		return
 	}
-	err := routeErrors[0]
+	groupErrors := CheckForGroupErrors(routes)
+	if len(groupErrors) != 1 {
+		t.Fatalf("Expected to get one error back from CheckForGroupErrors, got %+v\n", groupErrors)
+	}
+	err := groupErrors[0]
 	if err.Kind != OverlappingRoutes {
 		t.Errorf("Expecting to get one route error with an overlap, got %v error instead.\nRoutes:\n%v\n", err.Kind, routeFile)
 	}
@@ -895,7 +901,7 @@ func assertNoOverlap(t *testing.T, routeFile string) {
 	if len(errors) > 0 {
 		t.Errorf("Errors parsing route file: %+v\nRoutes:\n%v\n", errors, routeFile)
 	}
-	_, routeErrors := ProcessRouteFile([][]RouteFileEntry{entries}, []string{""}, "/", func([]RouteWithParents) {})
+	_, routeErrors := ProcessRouteFiles([][]RouteFileEntry{entries}, []string{""}, "/")
 	if len(routeErrors) != 0 {
 		t.Errorf("Expecting to get no errors.\nRoutes:\n%v\n", routeFile)
 	}

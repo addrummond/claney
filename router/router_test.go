@@ -281,7 +281,7 @@ func testRouter(t *testing.T, routeFile string, caseSensitive bool, callback fun
 	if len(errors) > 0 {
 		t.Errorf("Errors parsing route file: %+v\n", errors)
 	}
-	routes, routeErrors := compiler.ProcessRouteFile([][]compiler.RouteFileEntry{entries}, []string{""}, "/", func([]compiler.RouteWithParents) {})
+	routes, routeErrors := compiler.ProcessRouteFiles([][]compiler.RouteFileEntry{entries}, []string{""}, "/")
 	if len(routeErrors) > 0 {
 		t.Errorf("Errors processing route file: %+v\n", routeErrors)
 	}
@@ -347,7 +347,7 @@ func benchmarkRouterSimpleRoutes(b *testing.B, nRoutes int) {
 	if len(errors) > 0 {
 		b.Errorf("Errors parsing route file: %+v\n", errors)
 	}
-	routes, routeErrors := compiler.ProcessRouteFile([][]compiler.RouteFileEntry{entries}, []string{""}, "/", func([]compiler.RouteWithParents) {})
+	routes, routeErrors := compiler.ProcessRouteFiles([][]compiler.RouteFileEntry{entries}, []string{""}, "/")
 	if len(routeErrors) > 0 {
 		b.Errorf("Errors processing route file: %+v\n", routeErrors)
 	}
