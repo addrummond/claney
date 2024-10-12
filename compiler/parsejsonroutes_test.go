@@ -9,7 +9,7 @@ import (
 func TestParseJsonRoute(t *testing.T) {
 	const input = `
 	[
-	 	{"name": "foo", "pattern": ["foo", "pat"]},
+		{"name": "foo", "pattern": ["foo", "pat"]},
 		[
 		{"name": "foo", "pattern": ["foo", "pat"]},
 		]
