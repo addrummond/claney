@@ -11,7 +11,7 @@ func TestParseJsonRoute(t *testing.T) {
 	[
 		{"name": "foo", "pattern": ["foo", "pat"]},
 		[
-		{"name": "foo", "pattern": ["foo", "pat"]},
+			{"name": "foo", "pattern": ["foo", "pat"]}
 		]
 	]
 `

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/addrummond/claney/jsontok"
 )
 
 type routeElementKind int
@@ -332,6 +334,7 @@ const (
 	UnexpectedKeyInJSONRouteFile
 	JSONRouteMissingNameField
 	JSONRouteMissingPatternField
+	InvalidJsonInJSONRouteFile
 	// TODO rename below to have JSON in names
 	UnexpectedTokenInJSONRouteFile
 	NoSlashInsideJSONRoutePatternElement
@@ -351,6 +354,7 @@ type RouteError struct {
 	IOError       error
 	Filenames     []string
 	Group         []RouteWithParents
+	JsonError     jsontok.Token
 }
 
 func (e RouteError) Error() string {
@@ -422,6 +426,11 @@ func (e RouteError) Error() string {
 		desc = "Unexpected pattern element member"
 	case ParameterNameMustBeString:
 		desc = "Parameter name must be string"
+	case InvalidJsonInJSONRouteFile:
+		desc = "Invalid JSON"
+		if e.JsonError.Kind == jsontok.Error {
+			desc += ": " + e.JsonError.ErrorMsg
+		}
 	case WarningBigGroup:
 		desc = "Big group"
 	default:
@@ -453,6 +462,14 @@ func formatErrorMessage(e RouteError, desc string) string {
 	}
 
 	return msg
+}
+
+func routeError(kind RouteErrorKind, line int, col int) RouteError {
+	return RouteError{
+		Kind: kind,
+		Line: line,
+		Col:  col,
+	}
 }
 
 func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, []RouteError) {
@@ -503,19 +520,19 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 			nextr, sz := utf8.DecodeRuneInString(wholeLine[i:])
 			if unicode.IsSpace(nextr) {
 				if nextr != ' ' && nextr != '\t' {
-					errors = append(errors, RouteError{NontabspaceIndentationCharacter, sourceLine, -1, "", 0, nil, nil, nil})
+					errors = append(errors, routeError(NontabspaceIndentationCharacter, sourceLine, -1))
 				}
 				indent++
 				i += sz
 			} else if badCodePoint(nextr) {
-				errors = append(errors, RouteError{IllegalBackslashEscapeInRouteName, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(IllegalBackslashEscapeInRouteName, sourceLine, -1))
 				i += sz
 			} else {
 				break
 			}
 		}
 		if indent < initialIndent {
-			errors = append(errors, RouteError{IndentLessThanFirstLine, sourceLine, -1, "", 0, nil, nil, nil})
+			errors = append(errors, routeError(IndentLessThanFirstLine, sourceLine, -1))
 			continue
 		}
 		if initialIndent == -1 {
@@ -525,7 +542,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		// Is it '.'?
 		if isDot(wholeLine) {
 			if len(entries) == 0 || entries[len(entries)-1].indent >= indent {
-				errors = append(errors, RouteError{MisplacedDot, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(MisplacedDot, sourceLine, -1))
 			}
 			dotLevel = indent
 			continue
@@ -546,13 +563,13 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					nameB.WriteRune(rn)
 					i += sz + 1
 					if badCodePoint(rn) {
-						errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
+						errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
 					}
 					if !unicode.IsSpace(rn) {
-						errors = append(errors, RouteError{IllegalBackslashEscapeInRouteName, sourceLine, -1, "", 0, nil, nil, nil})
+						errors = append(errors, routeError(IllegalBackslashEscapeInRouteName, sourceLine, -1))
 					}
 				} else {
-					errors = append(errors, RouteError{IllegalBackslashEscapeInRouteName, sourceLine, -1, "", 0, nil, nil, nil})
+					errors = append(errors, routeError(IllegalBackslashEscapeInRouteName, sourceLine, -1))
 					i++
 				}
 			} else {
@@ -562,7 +579,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					break
 				}
 				if badCodePoint(rn) {
-					errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
+					errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
 				} else {
 					nameB.WriteRune(rn)
 				}
@@ -573,7 +590,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		for i < len(wholeLine) {
 			rn, sz := utf8.DecodeRuneInString(wholeLine[i:])
 			if badCodePoint(rn) {
-				errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
 			}
 			if !unicode.IsSpace(rn) {
 				break
@@ -582,7 +599,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		}
 
 		if i >= len(wholeLine) {
-			errors = append(errors, RouteError{MissingNameOrRoute, firstSourceLineOfSplice, -1, "", 0, nil, nil, nil})
+			errors = append(errors, routeError(MissingNameOrRoute, firstSourceLineOfSplice, -1))
 			continue
 		}
 
@@ -603,20 +620,20 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					}
 					if rn == ',' {
 						if foundComma {
-							errors = append(errors, RouteError{TwoCommasInSequenceInMethodNames, sourceLine, -1, "", 0, nil, nil, nil})
+							errors = append(errors, routeError(TwoCommasInSequenceInMethodNames, sourceLine, -1))
 						}
 						foundComma = true
 					}
 				} else if badCodePoint(rn) {
-					errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
+					errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
 				} else if (rn >= 'A' && rn <= 'Z') || (rn >= 'a' || rn <= 'z') { // ASCII letters only for method names
 					if len(methods) > 0 && currentMethod.Len() == 0 && !foundComma {
-						errors = append(errors, RouteError{MissingCommaBetweenMethodNames, sourceLine, -1, "", 0, nil, nil, nil})
+						errors = append(errors, routeError(MissingCommaBetweenMethodNames, sourceLine, -1))
 					}
 					foundComma = false
 					currentMethod.WriteRune(rn)
 				} else {
-					errors = append(errors, RouteError{BadCharacterInMethodName, sourceLine, -1, "", 0, nil, nil, nil})
+					errors = append(errors, routeError(BadCharacterInMethodName, sourceLine, -1))
 				}
 
 				if rn == ']' {
@@ -626,7 +643,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		}
 		if len(methods) == 0 {
 			if explicitMethodListPresent {
-				errors = append(errors, RouteError{EmptyMethodList, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(EmptyMethodList, sourceLine, -1))
 			}
 			methods["GET"] = struct{}{}
 		}
@@ -634,7 +651,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		for i < len(wholeLine) {
 			rn, sz := utf8.DecodeRuneInString(wholeLine[i:])
 			if badCodePoint(rn) {
-				errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
 			}
 			if !unicode.IsSpace(rn) {
 				break
@@ -652,7 +669,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		validationErrorKinds := validateRouteElems(initialIndent, indent, pattern)
 		if len(validationErrorKinds) > 0 {
 			for _, k := range validationErrorKinds {
-				errors = append(errors, RouteError{k, firstSourceLineOfSplice, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(k, firstSourceLineOfSplice, -1))
 			}
 			continue
 		}
@@ -663,21 +680,21 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 				if casePolicy == DisallowUpperCase {
 					if lci := containsNonLowerCase(elem.value); lci != -1 {
 						colZeroOffset := elem.col + lci + patternStart
-						errors = append(errors, RouteError{UpperCaseCharInRoute, sourceLine, physicalLineColumn(lineStarts, colZeroOffset) + 1, "", 0, nil, nil, nil})
+						errors = append(errors, routeError(UpperCaseCharInRoute, sourceLine, physicalLineColumn(lineStarts, colZeroOffset)+1))
 					}
 				}
 			case illegalCodePoint:
-				errors = append(errors, RouteError{RouteContainsBadCodePoint, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
 			case illegalQuestionMark:
-				errors = append(errors, RouteError{QuestionMarkInRoute, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(QuestionMarkInRoute, sourceLine, -1))
 			case illegalHash:
-				errors = append(errors, RouteError{HashInRoute, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(HashInRoute, sourceLine, -1))
 			case illegalWhitespace:
-				errors = append(errors, RouteError{WhitespaceInRoute, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(WhitespaceInRoute, sourceLine, -1))
 			case illegalCharInParamName:
-				errors = append(errors, RouteError{IllegalCharInParamName, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(IllegalCharInParamName, sourceLine, -1))
 			case illegalBackslashEscape:
-				errors = append(errors, RouteError{IllegalBackslashEscape, sourceLine, -1, "", 0, nil, nil, nil})
+				errors = append(errors, routeError(IllegalBackslashEscape, sourceLine, -1))
 			}
 		}
 
@@ -701,7 +718,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 	}
 
 	if err := scanner.Err(); err != nil {
-		errors = append(errors, RouteError{IOError, sourceLine, -1, "", 0, nil, nil, nil})
+		errors = append(errors, routeError(IOError, sourceLine, -1))
 	}
 
 	return entries, errors

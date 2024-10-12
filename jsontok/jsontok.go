@@ -14,18 +14,18 @@ import (
 type Kind int
 
 const (
-	ObjectStart      Kind = iota
-	ObjectEnd             = iota
-	ArrayStart            = iota
-	ArrayEnd              = iota
-	String                = iota | primval
-	Number                = iota | primval
-	True                  = iota | primval
-	False                 = iota | primval
-	Null                  = iota | primval
-	Error                 = iota
-	Comment               = iota
-	NewDocumentStart      = iota
+	ObjectStart Kind = iota
+	ObjectEnd
+	ArrayStart
+	ArrayEnd
+	String Kind = iota | primval
+	Number Kind = iota | primval
+	True   Kind = iota | primval
+	False  Kind = iota | primval
+	Null   Kind = iota | primval
+	Error  Kind = iota
+	Comment
+	NewDocumentStart
 	colon
 	comma
 )
