@@ -725,9 +725,13 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 }
 
 func physicalLineColumn(lineStarts []int, offset int) int {
+	if len(lineStarts) == 0 || lineStarts[0] != 0 {
+		panic("Bad value for lineStarts")
+	}
+
 	var search func(int, int) int
 	search = func(left, right int) int {
-		if right > left {
+		if left > right {
 			return -1
 		}
 
@@ -736,22 +740,13 @@ func physicalLineColumn(lineStarts []int, offset int) int {
 			if mid+1 == len(lineStarts) || lineStarts[mid+1] > offset {
 				return offset - lineStarts[mid]
 			}
-			return search(left, mid-1)
-		} else {
 			return search(mid+1, right)
+		} else {
+			return search(left, mid-1)
 		}
 	}
 
 	return search(0, len(lineStarts)-1)
-
-	// Could use binary search here, but this is not a performance-critical path
-	// (used only in error reporting), and very long splices should be uncommon.
-	/*for i := len(lineStarts) - 1; i >= 0; i-- {
-		if lineStarts[i] < offset {
-			return offset - lineStarts[i]
-		}
-	}
-	return 0*/
 }
 
 func ParseRouteFiles(inputFiles []string, inputReaders []io.Reader, casePolicy CasePolicy) ([][]RouteFileEntry, []RouteError) {
