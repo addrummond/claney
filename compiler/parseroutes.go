@@ -520,12 +520,12 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 			nextr, sz := utf8.DecodeRuneInString(wholeLine[i:])
 			if unicode.IsSpace(nextr) {
 				if nextr != ' ' && nextr != '\t' {
-					errors = append(errors, routeError(NontabspaceIndentationCharacter, sourceLine, -1))
+					errors = append(errors, routeError(NontabspaceIndentationCharacter, sourceLine, physicalLineColumn(lineStarts, i)))
 				}
 				indent++
 				i += sz
 			} else if badCodePoint(nextr) {
-				errors = append(errors, routeError(IllegalBackslashEscapeInRouteName, sourceLine, -1))
+				errors = append(errors, routeError(IllegalBackslashEscapeInRouteName, sourceLine, physicalLineColumn(lineStarts, i)))
 				i += sz
 			} else {
 				break
@@ -563,13 +563,13 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					nameB.WriteRune(rn)
 					i += sz + 1
 					if badCodePoint(rn) {
-						errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
+						errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, physicalLineColumn(lineStarts, i)))
 					}
 					if !unicode.IsSpace(rn) {
-						errors = append(errors, routeError(IllegalBackslashEscapeInRouteName, sourceLine, -1))
+						errors = append(errors, routeError(IllegalBackslashEscapeInRouteName, sourceLine, physicalLineColumn(lineStarts, i)))
 					}
 				} else {
-					errors = append(errors, routeError(IllegalBackslashEscapeInRouteName, sourceLine, -1))
+					errors = append(errors, routeError(IllegalBackslashEscapeInRouteName, sourceLine, physicalLineColumn(lineStarts, i)))
 					i++
 				}
 			} else {
@@ -579,7 +579,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					break
 				}
 				if badCodePoint(rn) {
-					errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
+					errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, physicalLineColumn(lineStarts, i)))
 				} else {
 					nameB.WriteRune(rn)
 				}
@@ -590,7 +590,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		for i < len(wholeLine) {
 			rn, sz := utf8.DecodeRuneInString(wholeLine[i:])
 			if badCodePoint(rn) {
-				errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
+				errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, physicalLineColumn(lineStarts, i)))
 			}
 			if !unicode.IsSpace(rn) {
 				break
@@ -599,7 +599,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		}
 
 		if i >= len(wholeLine) {
-			errors = append(errors, routeError(MissingNameOrRoute, firstSourceLineOfSplice, -1))
+			errors = append(errors, routeError(MissingNameOrRoute, firstSourceLineOfSplice, physicalLineColumn(lineStarts, len(wholeLine))))
 			continue
 		}
 
@@ -620,12 +620,12 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					}
 					if rn == ',' {
 						if foundComma {
-							errors = append(errors, routeError(TwoCommasInSequenceInMethodNames, sourceLine, -1))
+							errors = append(errors, routeError(TwoCommasInSequenceInMethodNames, sourceLine, physicalLineColumn(lineStarts, i)))
 						}
 						foundComma = true
 					}
 				} else if badCodePoint(rn) {
-					errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
+					errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, physicalLineColumn(lineStarts, i)))
 				} else if (rn >= 'A' && rn <= 'Z') || (rn >= 'a' || rn <= 'z') { // ASCII letters only for method names
 					if len(methods) > 0 && currentMethod.Len() == 0 && !foundComma {
 						errors = append(errors, routeError(MissingCommaBetweenMethodNames, sourceLine, -1))
@@ -633,7 +633,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					foundComma = false
 					currentMethod.WriteRune(rn)
 				} else {
-					errors = append(errors, routeError(BadCharacterInMethodName, sourceLine, -1))
+					errors = append(errors, routeError(BadCharacterInMethodName, sourceLine, physicalLineColumn(lineStarts, i)))
 				}
 
 				if rn == ']' {
@@ -651,7 +651,7 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 		for i < len(wholeLine) {
 			rn, sz := utf8.DecodeRuneInString(wholeLine[i:])
 			if badCodePoint(rn) {
-				errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
+				errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, physicalLineColumn(lineStarts, i)))
 			}
 			if !unicode.IsSpace(rn) {
 				break

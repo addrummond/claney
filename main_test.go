@@ -141,8 +141,8 @@ another /good/route
 	}
 
 	consoleOut := consoleOutb.String()
-	const expectedConsoleOut = "file1:3: missing route name or missing route pattern\n" +
-		"file2:4: missing route name or missing route pattern\n"
+	const expectedConsoleOut = "file1:3:12: missing route name or missing route pattern\n" +
+		"file2:4:12: missing route name or missing route pattern\n"
 
 	if consoleOut != expectedConsoleOut {
 		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
