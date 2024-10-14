@@ -684,17 +684,17 @@ func ParseRouteFile(input io.Reader, casePolicy CasePolicy) ([]RouteFileEntry, [
 					}
 				}
 			case illegalCodePoint:
-				errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, -1))
+				errors = append(errors, routeError(RouteContainsBadCodePoint, sourceLine, physicalLineColumn(lineStarts, elem.col+patternStart)))
 			case illegalQuestionMark:
-				errors = append(errors, routeError(QuestionMarkInRoute, sourceLine, -1))
+				errors = append(errors, routeError(QuestionMarkInRoute, sourceLine, physicalLineColumn(lineStarts, elem.col+patternStart)))
 			case illegalHash:
-				errors = append(errors, routeError(HashInRoute, sourceLine, -1))
+				errors = append(errors, routeError(HashInRoute, sourceLine, physicalLineColumn(lineStarts, elem.col+patternStart)))
 			case illegalWhitespace:
-				errors = append(errors, routeError(WhitespaceInRoute, sourceLine, -1))
+				errors = append(errors, routeError(WhitespaceInRoute, sourceLine, physicalLineColumn(lineStarts, elem.col+patternStart)))
 			case illegalCharInParamName:
-				errors = append(errors, routeError(IllegalCharInParamName, sourceLine, -1))
+				errors = append(errors, routeError(IllegalCharInParamName, sourceLine, physicalLineColumn(lineStarts, elem.col+patternStart)))
 			case illegalBackslashEscape:
-				errors = append(errors, routeError(IllegalBackslashEscape, sourceLine, -1))
+				errors = append(errors, routeError(IllegalBackslashEscape, sourceLine, physicalLineColumn(lineStarts, elem.col+patternStart)))
 			}
 		}
 
