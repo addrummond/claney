@@ -221,7 +221,7 @@ func parseRoute(route string) []routeElement {
 					i++
 					if i == len(route) {
 						sb.WriteByte('\\')
-					} else if route[i] == ':' || route[i] == '!' || route[i] == '[' || route[i] == ']' || route[i] == '*' {
+					} else if route[i] == ':' || route[i] == '!' || route[i] == '[' || route[i] == ']' || route[i] == '*' || route[i] == '\\' {
 						sb.WriteByte(route[i])
 						i++
 					} else {
