@@ -40,6 +40,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 	s := jpsInitial
 	currentEntry := RouteFileEntry{}
 	currentIndent := 0
+	var complexPatternElementStartToken jsontok.Token
 
 	for t := range jsontok.Tokenize(inp) {
 		if t.Kind == jsontok.Error {
@@ -54,6 +55,10 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			return
 		}
 
+		if t.Kind == jsontok.Comment {
+			continue
+		}
+
 		switch s {
 		case jpsInitial:
 			if t.Kind != jsontok.ArrayStart {
@@ -66,7 +71,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			switch t.Kind {
 			case jsontok.ObjectStart:
 				s = jpsInEntry
-				currentEntry = RouteFileEntry{}
+				currentEntry = RouteFileEntry{line: t.Line}
 				currentEntry.indent = currentIndent
 			case jsontok.ArrayStart:
 				currentIndent++
@@ -81,7 +86,6 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			}
 		case jpsInEntry:
 			currentEntry.indent = currentIndent
-			currentEntry.line = t.Line
 			k := string(t.Key)
 			switch t.Kind {
 			case jsontok.String:
@@ -95,7 +99,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col)
 					return
 				}
-				currentEntry.terminal = string(t.Value) == "true"
+				currentEntry.terminal = t.Kind == jsontok.True
 			case jsontok.ArrayStart:
 				if k == "tags" {
 					s = jpsInTags
@@ -118,7 +122,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 				}
 				if currentEntry.tags == nil {
 					currentEntry.tags = make(map[string]struct{})
-					currentEntry.tags["GET"] = struct{}{} // TODO is this duplicating logic elsewhere?
+					currentEntry.methods = map[string]struct{}{"GET": {}} // TODO is this duplicating logic elsewhere?
 				}
 				if currentEntry.methods == nil {
 					currentEntry.methods = make(map[string]struct{})
@@ -152,19 +156,23 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			switch t.Kind {
 			case jsontok.String:
 				val := string(t.Value)
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{slash, "", t.Col})
-				if strings.ContainsRune(val, '/') {
+				if val == "/" {
+					currentEntry.pattern = append(currentEntry.pattern, routeElement{slash, "", t.Line, t.Col})
+				} else if val == "!/" {
+					currentEntry.pattern = append(currentEntry.pattern, routeElement{noTrailingSlash, "", t.Line, t.Col})
+				} else if strings.ContainsRune(val, '/') {
 					errors = appendRouteErr(errors, NoSlashInsideJSONRoutePatternElement, t.Line, t.Col)
 					return
 				} else {
-					currentEntry.pattern = append(currentEntry.pattern, routeElement{constant, val, t.Col})
+					currentEntry.pattern = append(currentEntry.pattern, routeElement{constant, val, t.Line, t.Col})
 				}
 			case jsontok.ArrayStart:
+				complexPatternElementStartToken = t
 				s = jpsInPatternArrayElement
 			case jsontok.ArrayEnd:
-				reKinds := validateRouteElems(0, currentIndent, currentEntry.pattern)
-				if len(reKinds) > 0 {
-					for _, k := range reKinds {
+				validationErrorKinds := validateRouteElems(0, currentIndent, currentEntry.pattern)
+				if len(validationErrorKinds) > 0 {
+					for _, k := range validationErrorKinds {
 						errors = appendRouteErr(errors, k, t.Line, t.Col)
 					}
 				}
@@ -181,20 +189,16 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			switch sval {
 			case "*":
 				s = jpsInPatternArrayElementNoArg
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{singleGlob, "", t.Col})
+				currentEntry.pattern = append(currentEntry.pattern, routeElement{singleGlob, "", complexPatternElementStartToken.Line, complexPatternElementStartToken.Col})
 			case "**":
 				s = jpsInPatternArrayElementNoArg
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{doubleGlob, "", t.Col})
-			case "!/":
-				// TODO check that no trailing slash being at end is validated somewhere
-				s = jpsInPatternArrayElementNoArg
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{noTrailingSlash, "", t.Col})
+				currentEntry.pattern = append(currentEntry.pattern, routeElement{doubleGlob, "", complexPatternElementStartToken.Line, complexPatternElementStartToken.Col})
 			case ":":
 				s = jpsInPatternArrayElementParam
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{parameter, "", t.Col})
+				currentEntry.pattern = append(currentEntry.pattern, routeElement{parameter, "", complexPatternElementStartToken.Line, complexPatternElementStartToken.Col})
 			case ":**":
 				s = jpsInPatternArrayElementParam
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{restParameter, "", t.Col})
+				currentEntry.pattern = append(currentEntry.pattern, routeElement{restParameter, "", complexPatternElementStartToken.Line, complexPatternElementStartToken.Col})
 			default:
 				errors = appendRouteErr(errors, BadFirstMemberOfPatternElement, t.Line, t.Col)
 				return

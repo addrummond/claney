@@ -68,6 +68,7 @@ func (k routeElementKind) String() string {
 type routeElement struct {
 	kind  routeElementKind
 	value string
+	line  int // used only for json route file parses
 	col   int
 }
 
@@ -176,7 +177,7 @@ func parseRoute(route string) []routeElement {
 					currentElem.value = sb.String()
 				}
 				if badChar {
-					elems = append(elems, routeElement{illegalCharInParamName, "", startI})
+					elems = append(elems, routeElement{illegalCharInParamName, "", 0, startI})
 				}
 			} else {
 				for i < len(route) {
@@ -211,7 +212,7 @@ func parseRoute(route string) []routeElement {
 				}
 			}
 			if badEscape {
-				elems = append(elems, routeElement{illegalBackslashEscape, "", i})
+				elems = append(elems, routeElement{illegalBackslashEscape, "", 0, i})
 			}
 		default:
 			currentElem.kind = constant
@@ -227,7 +228,7 @@ func parseRoute(route string) []routeElement {
 					} else {
 						currentElem.value = sb.String()
 						elems = append(elems, currentElem)
-						elems = append(elems, routeElement{illegalBackslashEscape, "", i})
+						elems = append(elems, routeElement{illegalBackslashEscape, "", 0, i})
 						currentElem.kind = constant
 						currentElem.value = string(route[i])
 						sb.Reset()
@@ -238,14 +239,14 @@ func parseRoute(route string) []routeElement {
 					if unicode.IsSpace(r) {
 						currentElem.value = sb.String()
 						elems = append(elems, currentElem)
-						elems = append(elems, routeElement{illegalWhitespace, "", i})
+						elems = append(elems, routeElement{illegalWhitespace, "", 0, i})
 						currentElem.kind = constant
 						currentElem.value = ""
 						sb.Reset()
 					} else if badCodePoint(r) {
 						currentElem.value = sb.String()
 						elems = append(elems, currentElem)
-						elems = append(elems, routeElement{illegalCodePoint, "", i})
+						elems = append(elems, routeElement{illegalCodePoint, "", 0, i})
 						currentElem.kind = constant
 						currentElem.value = ""
 						sb.Reset()
@@ -263,6 +264,14 @@ func parseRoute(route string) []routeElement {
 	return elems
 }
 
+func isParamOrGlob(kind routeElementKind) bool {
+	switch kind {
+	case parameter, integerParameter, restParameter, singleGlob, doubleGlob:
+		return true
+	}
+	return false
+}
+
 func validateRouteElems(initialIndent, indent int, elems []routeElement) []RouteErrorKind {
 	if len(elems) == 0 {
 		return []RouteErrorKind{MissingNameOrRoute}
@@ -274,6 +283,10 @@ func validateRouteElems(initialIndent, indent int, elems []routeElement) []Route
 		if elems[i].kind == slash && elems[i+1].kind == slash {
 			errors = append(errors, MultipleSlashesInARow)
 			break
+		} else if elems[i].kind == noTrailingSlash {
+			errors = append(errors, NoTrailingSlashInMiddle)
+		} else if isParamOrGlob(elems[i].kind) && isParamOrGlob(elems[i+1].kind) {
+			errors = append(errors, NoParamAfterParam)
 		}
 	}
 
@@ -283,7 +296,7 @@ func validateRouteElems(initialIndent, indent int, elems []routeElement) []Route
 	if elems[len(elems)-1].kind == noTrailingSlash {
 		if len(elems) == 1 {
 			errors = append(errors, OnlyNoTrailingSlash)
-		} else if elems[len(elems)-1].kind == slash {
+		} else if elems[len(elems)-2].kind == slash {
 			errors = append(errors, NoTrailingSlashAfterSlash)
 		}
 	}
@@ -325,6 +338,8 @@ const (
 	IndentLessThanFirstLine
 	OnlyNoTrailingSlash
 	NoTrailingSlashAfterSlash
+	NoParamAfterParam
+	NoTrailingSlashInMiddle
 	MultipleSlashesInARow
 	UpperCaseCharInRoute
 	IOError
@@ -396,6 +411,10 @@ func (e RouteError) Error() string {
 		desc = "the route consists entirely of a '!/' prohibition on trailing slashes"
 	case NoTrailingSlashAfterSlash:
 		desc = "the '!/' sequence banning trailing slashes follows a slash"
+	case NoParamAfterParam:
+		desc = "One parameter or glob cannot be immediately followed by another"
+	case NoTrailingSlashInMiddle:
+		desc = "The '!/' sequence banning trailing slashes can only occur at the end of a pattern"
 	case MultipleSlashesInARow:
 		desc = "multiple slashes in a row in route"
 	case UpperCaseCharInRoute:
