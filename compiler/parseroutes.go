@@ -350,13 +350,12 @@ const (
 	JSONRouteMissingNameField
 	JSONRouteMissingPatternField
 	InvalidJsonInJSONRouteFile
-	// TODO rename below to have JSON in names
 	UnexpectedTokenInJSONRouteFile
 	NoSlashInsideJSONRoutePatternElement
-	FirstMemberOfPatternElementMustBeString
-	BadFirstMemberOfPatternElement
-	UnexpectedPatternElementMember
-	ParameterNameMustBeString
+	FirstMemberOfJSONRouteFilePatternElementMustBeString
+	BadFirstMemberOfJSONRouteFilePatternElement
+	UnexpectedJSONRouteFilePatternElementMember
+	JSONRouteFilePatternElementParameterNameMustBeString
 	WarningBigGroup = iota | RouteWarning
 )
 
@@ -437,13 +436,13 @@ func (e RouteError) Error() string {
 		desc = "Unexpected token in JSON route file"
 	case NoSlashInsideJSONRoutePatternElement:
 		desc = "No '/' allowed inside JSON route pattern element"
-	case FirstMemberOfPatternElementMustBeString:
+	case FirstMemberOfJSONRouteFilePatternElementMustBeString:
 		desc = "First member of pattern element must be string"
-	case BadFirstMemberOfPatternElement:
+	case BadFirstMemberOfJSONRouteFilePatternElement:
 		desc = "Bad first member of pattern element"
-	case UnexpectedPatternElementMember:
+	case UnexpectedJSONRouteFilePatternElementMember:
 		desc = "Unexpected pattern element member"
-	case ParameterNameMustBeString:
+	case JSONRouteFilePatternElementParameterNameMustBeString:
 		desc = "Parameter name must be string"
 	case InvalidJsonInJSONRouteFile:
 		desc = "Invalid JSON"
