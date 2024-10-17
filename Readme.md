@@ -270,6 +270,18 @@ router recognizes `/foo` and `/bar`, not `/foo/bar`:
     /bar
 ```
 
+### JSON input files
+
+In some cases it may be useful to generate route files automatically from
+another source. For this use case, Claney supports a JSON format for route
+files.
+
+```json
+[
+  "/foo"
+]
+```
+
 ### Filtering the output
 
 The output can be filtered using the `-filter` option to include or exclude

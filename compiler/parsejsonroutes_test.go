@@ -174,3 +174,30 @@ func TestParseJsonRoute(t *testing.T) {
 		t.Fatal(diff)
 	}
 }
+
+func TestParseJsonRouteVarious(t *testing.T) {
+	t.Run("Not an array", func(t *testing.T) {
+		_, errors := ParseJsonRouteFile(strings.NewReader(`"foo"`), DisallowUpperCase)
+		if len(errors) != 1 || errors[0].Kind != ExpectedJSONRoutesToBeArray {
+			t.Fatalf("Got unexpected errors: %+v\n", errors)
+		}
+	})
+
+	t.Run("Empty array", func(t *testing.T) {
+		entries, errors := ParseJsonRouteFile(strings.NewReader("[]"), DisallowUpperCase)
+		if len(errors) != 0 || len(entries) != 0 {
+			t.Fatalf("Expected no entries and no errors, got %+v %+v\n", entries, errors)
+		}
+	})
+
+	t.Run("Empty nested array", func(t *testing.T) {
+		entries, errors := ParseJsonRouteFile(strings.NewReader("[ [ [ ] ] ]"), DisallowUpperCase)
+		if len(errors) != 0 || len(entries) != 0 {
+			t.Fatalf("Expected no entries and no errors, got %+v %+v\n", entries, errors)
+		}
+	})
+
+	t.Run("Case policy test", func(t *testing.T) {
+		t.Fatalf("TEST CASE POLICY TODO!")
+	})
+}
