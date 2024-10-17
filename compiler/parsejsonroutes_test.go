@@ -12,7 +12,7 @@ func TestParseJsonRoute(t *testing.T) {
   [
     {"name": "foo", "pattern": ["/", "foo", "/", "pat"]},
     [
-      {"name": "bar", "terminal": true/*false*/, "pattern": ["/", "foo", "/", [":", "pat"]]},
+      {"name": "bar", "terminal": true/*false*/, "pattern": ["foo", "/", [":", "pat"]]},
       [{
         "name": "allpatternelems",
         "terminal": true,
@@ -82,26 +82,21 @@ func TestParseJsonRoute(t *testing.T) {
 			name:   "bar",
 			pattern: []routeElement{
 				{
-					kind: slash,
-					line: 5,
-					col:  62,
-				},
-				{
 					kind:  constant,
 					value: "foo",
 					line:  5,
-					col:   67,
+					col:   62,
 				},
 				{
 					kind: slash,
 					line: 5,
-					col:  74,
+					col:  69,
 				},
 				{
 					kind:  parameter,
 					value: "pat",
 					line:  5,
-					col:   79,
+					col:   74,
 				},
 			},
 			line:     5,
