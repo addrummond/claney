@@ -25,15 +25,15 @@ root /
 func TestRunNoTags(t *testing.T) {
 	var outb strings.Builder
 	exitCode := run(runParams{
-		inputFiles:     []string{""},
-		output:         "",
-		filter:         "",
-		verbose:        false,
-		allowUpperCase: false,
-		withReader:     mockReader(exampleInput),
-		withWriter:     mockWriter(&outb),
-		fprintf:        dummyFprintf,
-		nameSeparator:  "/",
+		fancyInputFiles: []string{""},
+		output:          "",
+		filter:          "",
+		verbose:         false,
+		allowUpperCase:  false,
+		withReader:      mockReader(exampleInput),
+		withWriter:      mockWriter(&outb),
+		fprintf:         dummyFprintf,
+		nameSeparator:   "/",
 	})
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
@@ -52,15 +52,15 @@ func TestRunNoTags(t *testing.T) {
 func TestRunExcludeAllTags(t *testing.T) {
 	var outb strings.Builder
 	exitCode := run(runParams{
-		inputFiles:     []string{""},
-		output:         "",
-		filter:         "man-*&!ap*",
-		verbose:        false,
-		allowUpperCase: false,
-		withReader:     mockReader(exampleInput),
-		withWriter:     mockWriter(&outb),
-		fprintf:        dummyFprintf,
-		nameSeparator:  "/",
+		fancyInputFiles: []string{""},
+		output:          "",
+		filter:          "man-*&!ap*",
+		verbose:         false,
+		allowUpperCase:  false,
+		withReader:      mockReader(exampleInput),
+		withWriter:      mockWriter(&outb),
+		fprintf:         dummyFprintf,
+		nameSeparator:   "/",
 	})
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
@@ -79,15 +79,15 @@ func TestRunExcludeAllTags(t *testing.T) {
 func TestRunIncludeOnlySomeTags(t *testing.T) {
 	var outb strings.Builder
 	exitCode := run(runParams{
-		inputFiles:     []string{""},
-		output:         "",
-		filter:         "ap*",
-		verbose:        false,
-		allowUpperCase: false,
-		withReader:     mockReader(exampleInput),
-		withWriter:     mockWriter(&outb),
-		fprintf:        dummyFprintf,
-		nameSeparator:  "/",
+		fancyInputFiles: []string{""},
+		output:          "",
+		filter:          "ap*",
+		verbose:         false,
+		allowUpperCase:  false,
+		withReader:      mockReader(exampleInput),
+		withWriter:      mockWriter(&outb),
+		fprintf:         dummyFprintf,
+		nameSeparator:   "/",
 	})
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
@@ -122,15 +122,15 @@ another /good/route
 	var outb strings.Builder
 	var consoleOutb strings.Builder
 	exitCode := run(runParams{
-		inputFiles:     []string{"file1", "file2"},
-		output:         "",
-		filter:         "",
-		verbose:        false,
-		allowUpperCase: false,
-		withReader:     mockMultifileReader(map[string]string{"file1": file1, "file2": file2}),
-		withWriter:     mockWriter(&outb),
-		fprintf:        getAccumFprintf(&consoleOutb),
-		nameSeparator:  "/",
+		fancyInputFiles: []string{"file1", "file2"},
+		output:          "",
+		filter:          "",
+		verbose:         false,
+		allowUpperCase:  false,
+		withReader:      mockMultifileReader(map[string]string{"file1": file1, "file2": file2}),
+		withWriter:      mockWriter(&outb),
+		fprintf:         getAccumFprintf(&consoleOutb),
+		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
@@ -158,15 +158,15 @@ r /
 	var outb strings.Builder
 	var consoleOutb strings.Builder
 	exitCode := run(runParams{
-		inputFiles:     []string{"file"},
-		output:         "",
-		filter:         "",
-		verbose:        false,
-		allowUpperCase: false,
-		withReader:     mockMultifileReader(map[string]string{"file": file}),
-		withWriter:     mockWriter(&outb),
-		fprintf:        getAccumFprintf(&consoleOutb),
-		nameSeparator:  "/",
+		fancyInputFiles: []string{"file"},
+		output:          "",
+		filter:          "",
+		verbose:         false,
+		allowUpperCase:  false,
+		withReader:      mockMultifileReader(map[string]string{"file": file}),
+		withWriter:      mockWriter(&outb),
+		fprintf:         getAccumFprintf(&consoleOutb),
+		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
@@ -193,15 +193,15 @@ r /
 	var outb strings.Builder
 	var consoleOutb strings.Builder
 	exitCode := run(runParams{
-		inputFiles:     []string{"file"},
-		output:         "",
-		filter:         "",
-		verbose:        false,
-		allowUpperCase: true,
-		withReader:     mockMultifileReader(map[string]string{"file": file}),
-		withWriter:     mockWriter(&outb),
-		fprintf:        getAccumFprintf(&consoleOutb),
-		nameSeparator:  "/",
+		fancyInputFiles: []string{"file"},
+		output:          "",
+		filter:          "",
+		verbose:         false,
+		allowUpperCase:  true,
+		withReader:      mockMultifileReader(map[string]string{"file": file}),
+		withWriter:      mockWriter(&outb),
+		fprintf:         getAccumFprintf(&consoleOutb),
+		nameSeparator:   "/",
 	})
 	if exitCode != 0 {
 		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
@@ -229,15 +229,15 @@ r /
 	var outb strings.Builder
 	var consoleOutb strings.Builder
 	exitCode := run(runParams{
-		inputFiles:     []string{"file"},
-		output:         "",
-		filter:         "",
-		verbose:        false,
-		allowUpperCase: false,
-		withReader:     mockMultifileReader(map[string]string{"file": file}),
-		withWriter:     mockWriter(&outb),
-		fprintf:        getAccumFprintf(&consoleOutb),
-		nameSeparator:  "/",
+		fancyInputFiles: []string{"file"},
+		output:          "",
+		filter:          "",
+		verbose:         false,
+		allowUpperCase:  false,
+		withReader:      mockMultifileReader(map[string]string{"file": file}),
+		withWriter:      mockWriter(&outb),
+		fprintf:         getAccumFprintf(&consoleOutb),
+		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
@@ -267,15 +267,15 @@ func TestOverlapErrorReportingSimpleCase(t *testing.T) {
 	var outb strings.Builder
 	var consoleOutb strings.Builder
 	exitCode := run(runParams{
-		inputFiles:     []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"},
-		output:         "",
-		filter:         "",
-		verbose:        false,
-		allowUpperCase: false,
-		withReader:     mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}),
-		withWriter:     mockWriter(&outb),
-		fprintf:        getAccumFprintf(&consoleOutb),
-		nameSeparator:  "/",
+		fancyInputFiles: []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"},
+		output:          "",
+		filter:          "",
+		verbose:         false,
+		allowUpperCase:  false,
+		withReader:      mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}),
+		withWriter:      mockWriter(&outb),
+		fprintf:         getAccumFprintf(&consoleOutb),
+		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
@@ -305,15 +305,15 @@ func TestOverlapErrorReportingMultiline(t *testing.T) {
 	var outb strings.Builder
 	var consoleOutb strings.Builder
 	exitCode := run(runParams{
-		inputFiles:     []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"},
-		output:         "",
-		filter:         "",
-		verbose:        false,
-		allowUpperCase: false,
-		withReader:     mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}),
-		withWriter:     mockWriter(&outb),
-		fprintf:        getAccumFprintf(&consoleOutb),
-		nameSeparator:  "/",
+		fancyInputFiles: []string{"file1", "file2", "file3", "file4", "file5", "file6", "file7"},
+		output:          "",
+		filter:          "",
+		verbose:         false,
+		allowUpperCase:  false,
+		withReader:      mockMultifileReader(map[string]string{"file1": file1, "file2": file2, "file3": file3, "file4": file4, "file5": file5, "file6": file6, "file7": file7}),
+		withWriter:      mockWriter(&outb),
+		fprintf:         getAccumFprintf(&consoleOutb),
+		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
 		t.Errorf("Expected 1 exit code, got %v\n", exitCode)

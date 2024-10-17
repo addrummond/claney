@@ -767,7 +767,7 @@ func physicalLineColumn(lineStarts []int, offset int) int {
 	return search(0, len(lineStarts)-1)
 }
 
-func ParseRouteFiles(inputFiles []string, inputReaders []io.Reader, casePolicy CasePolicy) ([][]RouteFileEntry, []RouteError) {
+func ParseRouteFiles(inputFiles []string, inputReaders []io.Reader, jsonStart int, casePolicy CasePolicy) ([][]RouteFileEntry, []RouteError) {
 	if len(inputFiles) != len(inputReaders) {
 		panic("Bad arguments passed to 'ParseRouteFiles': inputFiles and inputReaders must have same length")
 	}
@@ -780,17 +780,20 @@ func ParseRouteFiles(inputFiles []string, inputReaders []io.Reader, casePolicy C
 	for i, r := range inputReaders {
 		wg.Add(1)
 
-		ii := i // for Go <= 1.21 compat
-		rr := r // ditto
-
 		go func() {
 			defer wg.Done()
-			ent, es := ParseRouteFile(rr, casePolicy)
-			for j := range es {
-				es[j].Filenames = []string{inputFiles[ii]}
+			var ent []RouteFileEntry
+			var es []RouteError
+			if i >= jsonStart {
+				ent, es = ParseJsonRouteFile(r, casePolicy)
+			} else {
+				ent, es = ParseRouteFile(r, casePolicy)
 			}
-			entriesPerFile[ii] = ent
-			allErrors[ii] = es
+			for j := range es {
+				es[j].Filenames = []string{inputFiles[i]}
+			}
+			entriesPerFile[i] = ent
+			allErrors[i] = es
 		}()
 	}
 
