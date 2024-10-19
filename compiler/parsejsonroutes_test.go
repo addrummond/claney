@@ -197,7 +197,10 @@ func TestParseJsonRouteVarious(t *testing.T) {
 		}
 	})
 
-	t.Run("Case policy test", func(t *testing.T) {
-		t.Fatalf("TEST CASE POLICY TODO!")
+	t.Run("Doesn't allow upper case with DisallowUpperCase case policy", func(t *testing.T) {
+		_, errors := ParseJsonRouteFile(strings.NewReader(`[  {"name": "foo", "pattern": ["/", "FOO", "/", "pat"]} ]`), DisallowUpperCase)
+		if len(errors) != 1 {
+			t.Fatalf("Expected one error, got %+v\n", errors)
+		}
 	})
 }
