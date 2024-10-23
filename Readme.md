@@ -233,6 +233,10 @@ special sequence `!/` to disallow trailing slashes. For example, the pattern
 Claney always treats sequences of multiple slashes as equivalent to a single
 slash. For example, `//foo///bar//` is equivalent to `/foo/bar/`.
 
+## JSON input format
+
+TODO...
+
 ## Command line operation
 
 Claney reads from stdin and writes to stdout by default. An input file or output
