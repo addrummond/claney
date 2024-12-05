@@ -34,7 +34,7 @@ func TestParseJsonRoute(t *testing.T) {
         /* Another comment */
       }],
       [[[]]] // allowed; does nothing
-    ]
+    ]	
   ]
 `
 

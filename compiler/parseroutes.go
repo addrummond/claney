@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/addrummond/claney/jsontok"
+	j "github.com/addrummond/jsonstream"
 )
 
 type routeElementKind int
@@ -368,7 +368,7 @@ type RouteError struct {
 	IOError       error
 	Filenames     []string
 	Group         []RouteWithParents
-	JsonError     jsontok.Token
+	JsonError     j.Token
 }
 
 func (e RouteError) Error() string {
@@ -446,8 +446,8 @@ func (e RouteError) Error() string {
 		desc = "Parameter name must be string"
 	case InvalidJsonInJSONRouteFile:
 		desc = "Invalid JSON"
-		if e.JsonError.Kind == jsontok.Error {
-			desc += ": " + e.JsonError.ErrorMsg
+		if e := e.JsonError.AsError(); e != nil {
+			desc += ": " + e.Error()
 		}
 	case WarningBigGroup:
 		desc = "Big group"

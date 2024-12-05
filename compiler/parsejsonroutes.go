@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/addrummond/claney/jsontok"
+	j "github.com/addrummond/jsonstream"
 )
 
 type jsonParseState int
@@ -40,10 +40,12 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 	s := jpsInitial
 	currentEntry := RouteFileEntry{}
 	currentIndent := 0
-	var complexPatternElementStartToken jsontok.Token
+	var complexPatternElementStartToken j.Token
 
-	for t := range jsontok.Tokenize(inp) {
-		if t.Kind == jsontok.Error {
+	var parser j.Parser
+
+	for t := range parser.TokenizeAllowingComments(inp) {
+		if e := t.AsError(); e != nil {
 			errors = append(errors,
 				RouteError{
 					Kind:      InvalidJsonInJSONRouteFile,
@@ -55,13 +57,13 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			return
 		}
 
-		if t.Kind == jsontok.Comment {
+		if t.Kind == j.Comment {
 			continue
 		}
 
 		switch s {
 		case jpsInitial:
-			if t.Kind != jsontok.ArrayStart {
+			if t.Kind != j.ArrayStart {
 				errors = appendRouteErr(errors, ExpectedJSONRoutesToBeArray, t.Line, t.Col)
 				return
 			}
@@ -69,17 +71,17 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 		case jpsSeekingEntry:
 			currentEntry = RouteFileEntry{}
 			switch t.Kind {
-			case jsontok.ObjectStart:
+			case j.ObjectStart:
 				s = jpsInEntry
 				currentEntry = RouteFileEntry{line: t.Line}
 				currentEntry.indent = currentIndent
-			case jsontok.ArrayStart:
+			case j.ArrayStart:
 				currentIndent++
-			case jsontok.ArrayEnd:
+			case j.ArrayEnd:
 				currentIndent--
 			default:
 				fmt.Printf("BADKIND %v\n", t.Kind)
-				if t.Kind != jsontok.ObjectStart {
+				if t.Kind != j.ObjectStart {
 					errors = appendRouteErr(errors, ExpectedJSONRouteFileEntryToBeObject, t.Line, t.Col)
 					return
 				}
@@ -88,19 +90,19 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			currentEntry.indent = currentIndent
 			k := string(t.Key)
 			switch t.Kind {
-			case jsontok.String:
+			case j.String:
 				if k != "name" {
 					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col)
 					return
 				}
-				currentEntry.name = string(t.Value)
-			case jsontok.True, jsontok.False:
+				currentEntry.name = t.AsString()
+			case j.True, j.False:
 				if k != "terminal" {
 					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col)
 					return
 				}
-				currentEntry.terminal = t.Kind == jsontok.True
-			case jsontok.ArrayStart:
+				currentEntry.terminal = t.Kind == j.True
+			case j.ArrayStart:
 				if k == "tags" {
 					s = jpsInTags
 				} else if k == "methods" {
@@ -110,7 +112,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 				} else {
 					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col)
 				}
-			case jsontok.ObjectEnd:
+			case j.ObjectEnd:
 				s = jpsSeekingEntry
 				if currentEntry.name == "" {
 					errors = appendRouteErr(errors, JSONRouteMissingNameField, t.Line, t.Col)
@@ -134,9 +136,9 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			}
 		case jpsInTags:
 			switch t.Kind {
-			case jsontok.String:
-				currentEntry.tags[string(t.Value)] = struct{}{}
-			case jsontok.ArrayEnd:
+			case j.String:
+				currentEntry.tags[t.AsString()] = struct{}{}
+			case j.ArrayEnd:
 				s = jpsInEntry
 			default:
 				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col)
@@ -144,9 +146,9 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			}
 		case jpsInMethods:
 			switch t.Kind {
-			case jsontok.String:
+			case j.String:
 				currentEntry.methods[string(t.Value)] = struct{}{}
-			case jsontok.ArrayEnd:
+			case j.ArrayEnd:
 				s = jpsInEntry
 			default:
 				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col)
@@ -154,7 +156,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 			}
 		case jpsInPattern:
 			switch t.Kind {
-			case jsontok.String:
+			case j.String:
 				val := string(t.Value)
 				if val == "/" {
 					currentEntry.pattern = append(currentEntry.pattern, routeElement{slash, "", t.Line, t.Col})
@@ -166,10 +168,10 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 				} else {
 					currentEntry.pattern = append(currentEntry.pattern, routeElement{constant, val, t.Line, t.Col})
 				}
-			case jsontok.ArrayStart:
+			case j.ArrayStart:
 				complexPatternElementStartToken = t
 				s = jpsInPatternArrayElement
-			case jsontok.ArrayEnd:
+			case j.ArrayEnd:
 				validationErrorKinds := validateRouteElems(0, currentIndent, currentEntry.pattern)
 				if len(validationErrorKinds) > 0 {
 					for _, k := range validationErrorKinds {
@@ -181,7 +183,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col)
 			}
 		case jpsInPatternArrayElement:
-			if t.Kind != jsontok.String {
+			if t.Kind != j.String {
 				errors = appendRouteErr(errors, FirstMemberOfJSONRouteFilePatternElementMustBeString, t.Line, t.Col)
 				return
 			}
@@ -204,13 +206,13 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 				return
 			}
 		case jpsInPatternArrayElementNoArg:
-			if t.Kind != jsontok.ArrayEnd {
+			if t.Kind != j.ArrayEnd {
 				errors = appendRouteErr(errors, UnexpectedJSONRouteFilePatternElementMember, t.Line, t.Col)
 				return
 			}
 			s = jpsInPattern
 		case jpsInPatternArrayElementParam:
-			if t.Kind != jsontok.String {
+			if t.Kind != j.String {
 				errors = appendRouteErr(errors, JSONRouteFilePatternElementParameterNameMustBeString, t.Line, t.Col)
 				return
 			}

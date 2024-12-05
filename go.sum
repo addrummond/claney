@@ -1,3 +1,5 @@
+github.com/addrummond/jsonstream v0.2.0 h1:4GL8cYZk+oKgZ3HqbauDE59gDLhPGeqcCcNLDuscWN8=
+github.com/addrummond/jsonstream v0.2.0/go.mod h1:hBhIraf53ruaba7bkGyyefPbI3DZgmc2mULRlbpjLzk=
 github.com/antchfx/jsonquery v1.3.2 h1:/BgHv1le9CCkqDe7t1x5BRlCg6DQmXTsztnMQFG5Hoc=
 github.com/antchfx/jsonquery v1.3.2/go.mod h1:VsW9O/sNgHoUVvhoMEjR+opjIOjKOViNFTpAlxcI4Ws=
 github.com/antchfx/xpath v1.2.3 h1:CCZWOzv5bAqjVv0offZ2LVgVYFbeldKQVuLNbViZdes=
