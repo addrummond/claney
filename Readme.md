@@ -77,6 +77,7 @@ The following is an example of an input file:
 ```
 root          /
 users         /users                       [users]
+  .
   login       [GET,POST] /login
   settings    /:user_id/settings
 managers      /managers                    [managers,admin]
@@ -92,6 +93,7 @@ This input defines the following routes as valid:
 | Route name        | Method       | Path                                | Parameters                   | Tags 
 --------------------|--------------|-------------------------------------|------------------------------|------------------------
 | root              | GET or POST  | /                                   | `[]`                         | `[]`
+| users             | GET          | /users                              | `[]`                         | `["users"]`
 | users/login       | GET          | /users/login                        | `[]`                         | `["users"]`
 | users/settings    | GET          | /users/:user_id/settings            | `["user_id]"`                | `["users"]`
 | managers/login    | GET          | /managers/login                     | `[]`                         | `["admin","managers"]`
@@ -103,6 +105,11 @@ This input defines the following routes as valid:
 By default, `/` is used to join the name of a route to the names of its parent
 routes. A different separator may be used if desired (see 'Command line
 operation' below).
+
+Note that `/users` is defined as a valid route but `/managers` is not. This is
+because of the '.' on the third line of the input file. This indicates that
+`/users` is not just a parent to other routes, but also a route in its own
+right.
 
 ### General syntax
 
@@ -140,6 +147,25 @@ Method names are always converted to upper case.
 
 Indentation is significant. If route A is indented under route B then B's path
 is joined to A's path and B inherits all of A's tags.
+
+If a route has child routes (i.e. routes indented under it), then a similarly
+indented `.` may be placed before these child routes. This indicates that the
+route above exists as a route in its own right.
+
+```
+# Only /foo/bar and /foo/amp are defined as valid routes
+foo /foo
+  bar /bar
+  amp /amp
+```
+
+```
+# /foo, /foo/bar and /foo/amp are all defined as valid routes
+foo /foo
+  .
+  bar /bar
+  amp /amp
+```
 
 ### Route name uniqueness
 
@@ -253,7 +279,7 @@ inputs.
 ### Multiple input files
 
 The `-input` flag can be passed multiple times to generate output on the basis
-of multiple input files. The output obtained is essentialy the same as if the
+of multiple input files. The output obtained is essentially the same as if the
 input files were concatenated into one. The only difference is that Claney
 considers the least indented routes in each file to be at the top level, even
 if the least indented route in one file is more indented than the least indented
@@ -270,9 +296,65 @@ router recognizes `/foo` and `/bar`, not `/foo/bar`:
     /bar
 ```
 
+### JSON input files
+
+In some cases it may be useful to generate route files automatically from
+another source. For this use case, Claney supports a JSON format for route
+files. As an extension to standard JSON, JavaScript style comments are
+permitted.
+
+Like the normal input syntax, the JSON input is arranged hierarchically. The
+input is an array; each nested array corresponds to an additional level of
+indentation in the normal syntax.
+
+An example:
+
+```json
+[
+  // Each element of a pattern is one of
+  //   "/"
+  //   "/!"
+  //   ["*"]
+  //   ["**"]
+  //   [":", "varname"]
+  //   [":**", "varname"]
+  {"name": "foo", "pattern": ["/", "foo", "/", "bar"]},
+  // A pattern may also be specified as a single string, using the same syntax
+  // as for a normal input file. This is not advisable if you are generating the
+  // input automatically as it requires escaping of special characters, but it
+  // is useful if you are creating part of the JSON input by hand.
+  {"name": "foobar", "pattern": "/amp/baz/:var"},
+  [
+    // Set 'terminal' to true if the route is a route in its own right and not
+    // just a parent for other routes. (This is like adding the '.' below a route
+    // in the normal input syntax.)
+    {"name": "bar", "terminal": true, "pattern": ["foo", "/", [":", "var"]]},
+    [{
+      "name": "allpatternelems",
+      "terminal": true,
+      "pattern": [
+        "/",
+        "elem1",
+        [":", "param1"],
+        "/",
+        ["*"],
+        "/",
+        ["**"],
+        "/",
+        [":**", "param2"],
+        "!/"
+      ]
+    }],
+    [[[]]] // allowed; does nothing
+  ]
+]
+```
+
+TODO: Proper documentation for the JSON input format.
+
 ### Filtering the output
 
-The output can be filtered using the `-filter` option to include or exclude
+Output can be filtered using the `-filter` option to include or exclude
 routes with certain methods or tags. For example:
 
 ```sh
@@ -368,7 +450,7 @@ route.
 ## Implementation
 
 Routing is a two-step process. The first step is a find/replace  using a single
-'God' regular expression that matches valid routes. The result of the
+'God' regular expression that matches all valid routes. The result of the
 find/replace is a string containing all of the constant portions of the input
 route. For example, if the route is something like `/manager/10/settings`, then
 the constant portion would be `/manager//settings`. In most cases, the constant
@@ -431,7 +513,7 @@ On an M1 Macbook Air, the following times per routing operation are observed:
 
 ## Decomposing routers
 
-Claney does not provide any special facilty for 'including' one router inside
+Claney does not provide any special facility for 'including' one router inside
 another, but it is easy to use rest parameters to decompose one router into
 multiple subrouters, as in the following example.
 
@@ -484,12 +566,6 @@ function route(path) {
 Javascript and Go router implementations are provided in `js/router.js` and
 `router/router.go`. There is documentation for the Go implementation
 [here](https://pkg.go.dev/github.com/addrummond/claney/router).
-
-There is a simple example of integrating the router into a single-page React app
-in `js/react_example`. In this directory, run `build.sh` and then
-`startserver.sh` to start a server on localhost:80001. (CORS issues make it
-necessary to use a server.) The app uses the library in
-`js/reactmicrorouter.js`.
 
 ## Name
 

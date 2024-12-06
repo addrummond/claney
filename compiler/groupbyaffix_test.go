@@ -66,9 +66,9 @@ func TestGetConstishPrefix(t *testing.T) {
 	for _, tc := range testCases {
 		ris := make([]*CompiledRoute, 0)
 		for _, p := range tc.prefixes {
-			elems := []routeElement{{slash, "", 0}}
+			elems := []routeElement{{slash, "", 0, 0}}
 			if !p.allConst {
-				elems = append(elems, routeElement{singleGlob, "", 0})
+				elems = append(elems, routeElement{singleGlob, "", 0, 0})
 			}
 			ris = append(ris, &CompiledRoute{
 				Compiled: RouteRegexp{
@@ -105,9 +105,9 @@ func TestGetConstishSuffix(t *testing.T) {
 	for _, tc := range testCases {
 		ris := make([]*CompiledRoute, 0)
 		for _, p := range tc.prefixes {
-			elems := []routeElement{{slash, "", 0}}
+			elems := []routeElement{{slash, "", 0, 0}}
 			if !p.allConst {
-				elems = append(elems, routeElement{singleGlob, "", 0})
+				elems = append(elems, routeElement{singleGlob, "", 0, 0})
 			}
 			ris = append(ris, &CompiledRoute{
 				Compiled: RouteRegexp{

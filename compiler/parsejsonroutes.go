@@ -1,11 +1,10 @@
 package compiler
 
 import (
-	"fmt"
 	"io"
 	"strings"
 
-	"github.com/addrummond/claney/jsontok"
+	j "github.com/addrummond/jsonstream"
 )
 
 type jsonParseState int
@@ -16,187 +15,227 @@ const (
 	jpsInEntry
 	jpsInTags
 	jpsInMethods
-	jpsInPattern
+	jpsInStringPattern
+	jpsInArrayPattern
 	jpsInPatternArrayElement
 	jpsInPatternArrayElementNoArg
 	jpsInPatternArrayElementParam
 )
 
-func appendRouteErr(errors []RouteError, kind RouteErrorKind, line, col int, message string) []RouteError {
-	return append(errors, RouteError{kind, line, col, message, 0, nil, nil, nil})
+func appendRouteErr(errors []RouteError, kind RouteErrorKind, line, col int) []RouteError {
+	return append(errors, RouteError{
+		Kind: kind,
+		Line: line,
+		Col:  col,
+	})
 }
 
 func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []RouteFileEntry, errors []RouteError) {
 	inp, err := io.ReadAll(input)
 	if err != nil {
-		errors = appendRouteErr(errors, IOError, -1, -1, "")
+		errors = appendRouteErr(errors, IOError, -1, -1)
 		return
 	}
 
 	s := jpsInitial
 	currentEntry := RouteFileEntry{}
 	currentIndent := 0
+	var complexPatternElementStartToken j.Token
 
-	for t := range jsontok.Tokenize(inp) {
-		fmt.Printf("%v:  %+v\n", s, t)
+	var parser j.Parser
+
+	for t := range parser.TokenizeAllowingComments(inp) {
+		if e := t.AsError(); e != nil {
+			errors = append(errors,
+				RouteError{
+					Kind:      InvalidJsonInJSONRouteFile,
+					Line:      t.Line,
+					Col:       t.Col,
+					JsonError: t,
+				},
+			)
+			return
+		}
+
+		if t.Kind == j.Comment {
+			continue
+		}
 
 		switch s {
 		case jpsInitial:
-			if t.Kind != jsontok.ArrayStart {
-				errors = appendRouteErr(errors, ExpectedJSONRoutesToBeArray, t.Line, t.Col, "Expected JSON routes file to be array")
+			if t.Kind != j.ArrayStart {
+				errors = appendRouteErr(errors, ExpectedJSONRoutesToBeArray, t.Line, t.Col)
 				return
 			}
 			s = jpsSeekingEntry
 		case jpsSeekingEntry:
 			currentEntry = RouteFileEntry{}
 			switch t.Kind {
-			case jsontok.ObjectStart:
+			case j.ObjectStart:
 				s = jpsInEntry
-				currentEntry = RouteFileEntry{}
+				currentEntry = RouteFileEntry{line: t.Line}
 				currentEntry.indent = currentIndent
-			case jsontok.ArrayStart:
+			case j.ArrayStart:
 				currentIndent++
-			case jsontok.ArrayEnd:
+			case j.ArrayEnd:
 				currentIndent--
 			default:
-				if t.Kind != jsontok.ObjectStart {
-					errors = appendRouteErr(errors, ExpectedJSONRouteFileEntryToBeObject, t.Line, t.Col, "Expected JSON route file entry to be an object")
+				if t.Kind != j.ObjectStart {
+					errors = appendRouteErr(errors, ExpectedJSONRouteFileEntryToBeObject, t.Line, t.Col)
 					return
 				}
 			}
 		case jpsInEntry:
 			currentEntry.indent = currentIndent
-			currentEntry.line = t.Line
 			k := string(t.Key)
 			switch t.Kind {
-			case jsontok.String:
-				if k != "name" {
-					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col, "Unexpected object key or bad value for key")
+			case j.String:
+				if k == "name" {
+					currentEntry.name = t.AsString()
+				} else if k == "pattern" {
+					elems := parseRoute(t.AsString())
+					errkinds := validateRouteElems(0, currentEntry.indent, elems)
+					if len(errkinds) > 0 {
+						for _, k := range errkinds {
+							errors = append(errors, routeError(k, t.Line, t.Col))
+						}
+						return
+					}
+					for i := range elems {
+						elems[i].line = t.Line
+						elems[i].col += t.Col + 1 // compensate for initial '"
+					}
+					currentEntry.pattern = append(currentEntry.pattern, elems...)
+				} else {
+					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col)
 					return
 				}
-				currentEntry.name = string(t.Value)
-			case jsontok.True, jsontok.False:
+			case j.True, j.False:
 				if k != "terminal" {
-					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col, "Unexpected object key or bad value for key")
+					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col)
 					return
 				}
-				currentEntry.terminal = string(t.Value) == "true"
-			case jsontok.ArrayStart:
+				currentEntry.terminal = t.Kind == j.True
+			case j.ArrayStart:
 				if k == "tags" {
 					s = jpsInTags
 				} else if k == "methods" {
 					s = jpsInMethods
 				} else if k == "pattern" {
-					s = jpsInPattern
+					s = jpsInArrayPattern
 				} else {
-					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col, "Unexpected object key or bad value for key")
+					errors = appendRouteErr(errors, UnexpectedKeyInJSONRouteFile, t.Line, t.Col)
 				}
-			case jsontok.ObjectEnd:
+			case j.ObjectEnd:
 				s = jpsSeekingEntry
 				if currentEntry.name == "" {
-					errors = appendRouteErr(errors, JSONRouteMissingNameField, t.Line, t.Col, "Route is missing 'name' field")
+					errors = appendRouteErr(errors, JSONRouteMissingNameField, t.Line, t.Col)
 					return
 				}
 				if currentEntry.pattern == nil {
-					errors = appendRouteErr(errors, JSONRouteMissingPatternField, t.Line, t.Col, "Route is missing 'pattern' field")
+					errors = appendRouteErr(errors, JSONRouteMissingPatternField, t.Line, t.Col)
 					return
 				}
 				if currentEntry.tags == nil {
 					currentEntry.tags = make(map[string]struct{})
-					currentEntry.tags["GET"] = struct{}{} // TODO is this duplicating logic elsewhere?
+					currentEntry.methods = map[string]struct{}{"GET": {}} // TODO is this duplicating logic elsewhere?
 				}
 				if currentEntry.methods == nil {
 					currentEntry.methods = make(map[string]struct{})
 				}
 				entries = append(entries, currentEntry)
 			default:
-				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col, "Unexpected token")
+				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col)
 				return
 			}
 		case jpsInTags:
 			switch t.Kind {
-			case jsontok.String:
-				currentEntry.tags[string(t.Value)] = struct{}{}
-			case jsontok.ArrayEnd:
+			case j.String:
+				currentEntry.tags[t.AsString()] = struct{}{}
+			case j.ArrayEnd:
 				s = jpsInEntry
 			default:
-				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col, "Unexpected token")
+				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col)
 				return
 			}
 		case jpsInMethods:
 			switch t.Kind {
-			case jsontok.String:
+			case j.String:
 				currentEntry.methods[string(t.Value)] = struct{}{}
-			case jsontok.ArrayEnd:
+			case j.ArrayEnd:
 				s = jpsInEntry
 			default:
-				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col, "Unexpected token")
+				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col)
 				return
 			}
-		case jpsInPattern:
+		case jpsInArrayPattern:
 			switch t.Kind {
-			case jsontok.String:
-				val := string(t.Value)
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{slash, "", t.Col})
-				if strings.ContainsRune(val, '/') {
-					errors = appendRouteErr(errors, NoSlashInsideJSONRoutePatternElement, t.Line, t.Col, "No '/' allowed inside route pattern element")
+			case j.String:
+				val := t.AsString()
+				if val == "/" {
+					currentEntry.pattern = append(currentEntry.pattern, routeElement{slash, "", t.Line, t.Col})
+				} else if val == "!/" {
+					currentEntry.pattern = append(currentEntry.pattern, routeElement{noTrailingSlash, "", t.Line, t.Col})
+				} else if strings.ContainsRune(val, '/') {
+					errors = appendRouteErr(errors, NoSlashInsideJSONRoutePatternElement, t.Line, t.Col)
 					return
 				} else {
-					currentEntry.pattern = append(currentEntry.pattern, routeElement{constant, val, t.Col})
+					if casePolicy == DisallowUpperCase {
+						if lci := containsNonLowerCase(val); lci != -1 {
+							errors = append(errors, routeError(UpperCaseCharInRoute, t.Line, t.Col+lci))
+						}
+					}
+					currentEntry.pattern = append(currentEntry.pattern, routeElement{constant, val, t.Line, t.Col})
 				}
-			case jsontok.ArrayStart:
+			case j.ArrayStart:
+				complexPatternElementStartToken = t
 				s = jpsInPatternArrayElement
-			case jsontok.ArrayEnd:
-				reKinds := validateRouteElems(0, currentIndent, currentEntry.pattern)
-				if len(reKinds) > 0 {
-					for _, k := range reKinds {
-						errors = appendRouteErr(errors, k, t.Line, t.Col, "Bad route pattern")
+			case j.ArrayEnd:
+				validationErrorKinds := validateRouteElems(0, currentIndent, currentEntry.pattern)
+				if len(validationErrorKinds) > 0 {
+					for _, k := range validationErrorKinds {
+						errors = appendRouteErr(errors, k, t.Line, t.Col)
 					}
 				}
 				s = jpsInEntry
 			default:
-				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col, "Unexpected token")
-				return
+				errors = appendRouteErr(errors, UnexpectedTokenInJSONRouteFile, t.Line, t.Col)
 			}
 		case jpsInPatternArrayElement:
-			if t.Kind != jsontok.String {
-				errors = appendRouteErr(errors, FirstMemberOfPatternElementMustBeString, t.Line, t.Col, "First member of array route element must be string")
+			if t.Kind != j.String {
+				errors = appendRouteErr(errors, FirstMemberOfJSONRouteFilePatternElementMustBeString, t.Line, t.Col)
 				return
 			}
-			sval := string(t.Value)
+			sval := t.AsString()
 			switch sval {
 			case "*":
 				s = jpsInPatternArrayElementNoArg
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{singleGlob, "", t.Col})
+				currentEntry.pattern = append(currentEntry.pattern, routeElement{singleGlob, "", complexPatternElementStartToken.Line, complexPatternElementStartToken.Col})
 			case "**":
 				s = jpsInPatternArrayElementNoArg
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{doubleGlob, "", t.Col})
-			case "!/":
-				// TODO check that no trailing slash being at end is validated somewhere
-				s = jpsInPatternArrayElementNoArg
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{noTrailingSlash, "", t.Col})
+				currentEntry.pattern = append(currentEntry.pattern, routeElement{doubleGlob, "", complexPatternElementStartToken.Line, complexPatternElementStartToken.Col})
 			case ":":
 				s = jpsInPatternArrayElementParam
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{parameter, "", t.Col})
+				currentEntry.pattern = append(currentEntry.pattern, routeElement{parameter, "", complexPatternElementStartToken.Line, complexPatternElementStartToken.Col})
 			case ":**":
 				s = jpsInPatternArrayElementParam
-				currentEntry.pattern = append(currentEntry.pattern, routeElement{restParameter, "", t.Col})
+				currentEntry.pattern = append(currentEntry.pattern, routeElement{restParameter, "", complexPatternElementStartToken.Line, complexPatternElementStartToken.Col})
 			default:
-				errors = appendRouteErr(errors, BadFirstMemberOfPatternElement, t.Line, t.Col, "Unrecognized first member of pattern element")
+				errors = appendRouteErr(errors, BadFirstMemberOfJSONRouteFilePatternElement, t.Line, t.Col)
 				return
 			}
 		case jpsInPatternArrayElementNoArg:
-			if t.Kind != jsontok.ArrayEnd {
-				errors = appendRouteErr(errors, UnexpectedPatternElementMember, t.Line, t.Col, "Unexpected additional member of pattern element")
+			if t.Kind != j.ArrayEnd {
+				errors = appendRouteErr(errors, UnexpectedJSONRouteFilePatternElementMember, t.Line, t.Col)
 				return
 			}
-			s = jpsInPattern
+			s = jpsInArrayPattern
 		case jpsInPatternArrayElementParam:
-			if t.Kind != jsontok.String {
-				errors = appendRouteErr(errors, ParameterNameMustBeString, t.Line, t.Col, "Parameter name must be string")
+			if t.Kind != j.String {
+				errors = appendRouteErr(errors, JSONRouteFilePatternElementParameterNameMustBeString, t.Line, t.Col)
 				return
 			}
-			currentEntry.pattern[len(currentEntry.pattern)-1].value = string(t.Value)
+			currentEntry.pattern[len(currentEntry.pattern)-1].value = t.AsString()
 			s = jpsInPatternArrayElementNoArg
 		}
 	}

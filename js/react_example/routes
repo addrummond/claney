@@ -1,6 +1,0 @@
-customers /customers
-  login    /login
-  settings /settings
-managers /managers
-  login    /login
-  settings /settings

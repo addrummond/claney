@@ -11,7 +11,7 @@ import (
 
 func TestRouteToRegexp(t *testing.T) {
 	ri := routeToRegexps(parseRoute("/foo/:bar/amp"))
-	if !(reflect.DeepEqual(ri.Elems, []routeElement{{constant, "foo", 1}, {slash, "", 4}, {parameter, "bar", 5}, {slash, "", 9}, {constant, "amp", 10}}) &&
+	if !(reflect.DeepEqual(ri.Elems, []routeElement{{constant, "foo", 0, 1}, {slash, "", 0, 4}, {parameter, "bar", 0, 5}, {slash, "", 0, 9}, {constant, "amp", 0, 10}}) &&
 		ri.ConstantPortion == "foo//amp" && ri.NGroups == 1 &&
 		reflect.DeepEqual(ri.ParamGroupNumbers, map[string]int{"bar": 1})) {
 		t.Errorf("Unexpected return value of routeToRegexps: %+v\n", ri)
@@ -666,14 +666,14 @@ func TestDisjoinRegexpComplex(t *testing.T) {
 }
 
 func TestRouteMatching(t *testing.T) {
-	sl := routeElement{slash, "", 0}
-	glob := routeElement{singleGlob, "", 0}
-	dglob := routeElement{doubleGlob, "", 0}
-	noslash := routeElement{noTrailingSlash, "", 0}
-	c := func(s string) routeElement { return routeElement{constant, s, 0} }
-	p := func(s string) routeElement { return routeElement{parameter, s, 0} }
-	ip := func(s string) routeElement { return routeElement{integerParameter, s, 0} }
-	rp := func(s string) routeElement { return routeElement{restParameter, s, 0} }
+	sl := routeElement{slash, "", 0, 0}
+	glob := routeElement{singleGlob, "", 0, 0}
+	dglob := routeElement{doubleGlob, "", 0, 0}
+	noslash := routeElement{noTrailingSlash, "", 0, 0}
+	c := func(s string) routeElement { return routeElement{constant, s, 0, 0} }
+	p := func(s string) routeElement { return routeElement{parameter, s, 0, 0} }
+	ip := func(s string) routeElement { return routeElement{integerParameter, s, 0, 0} }
+	rp := func(s string) routeElement { return routeElement{restParameter, s, 0, 0} }
 
 	// Initial slash is not included in the raw regexps but is introduced when
 	// joining hierarchical routes, so there are no leading slashes in the

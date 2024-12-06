@@ -32,8 +32,10 @@ func main() {
 	verbose := flag.Bool("verbose", false, "print diagnostic information")
 	allowUpperCase := flag.Bool("allow-upper-case", false, "allow upper case characters in routes")
 	nameSeparator := flag.String("name-separator", "", "name separator (default \"/\")")
-	inputFiles := &inputAccum{}
-	flag.Var(inputFiles, "input", "input file (default stdin)")
+	fancyInputFiles := &inputAccum{}
+	jsonInputFiles := &inputAccum{}
+	flag.Var(fancyInputFiles, "input", "input file (default stdin)")
+	flag.Var(jsonInputFiles, "json-input", "JSON input file (default stdin)")
 	output := flag.String("output", "", "output file (default stdout)")
 	filter := flag.String("filter", "", "include only routes with tags that match the given expression")
 	flag.Parse()
@@ -49,37 +51,42 @@ func main() {
 		*nameSeparator = "/"
 	}
 
-	var filenames []string
-	if len(inputFiles.filenames) == 0 {
-		filenames = []string{""} // indicates stdin
+	var fancyFilenames []string
+	var jsonFilenames []string
+	if len(fancyInputFiles.filenames) == 0 && len(jsonFilenames) == 0 {
+		fancyFilenames = []string{""} // indicates stdin
+		jsonFilenames = []string{""}
 	} else {
-		filenames = inputFiles.filenames
+		fancyFilenames = fancyInputFiles.filenames
+		jsonFilenames = jsonInputFiles.filenames
 	}
 
 	os.Exit(run(runParams{
-		version:        *version,
-		inputFiles:     filenames,
-		output:         *output,
-		filter:         *filter,
-		verbose:        *verbose,
-		allowUpperCase: *allowUpperCase,
-		withReader:     withReader,
-		withWriter:     withWriter,
-		fprintf:        fmt.Fprintf,
-		nameSeparator:  *nameSeparator}))
+		version:         *version,
+		fancyInputFiles: fancyFilenames,
+		jsonInputFiles:  jsonFilenames,
+		output:          *output,
+		filter:          *filter,
+		verbose:         *verbose,
+		allowUpperCase:  *allowUpperCase,
+		withReader:      withReader,
+		withWriter:      withWriter,
+		fprintf:         fmt.Fprintf,
+		nameSeparator:   *nameSeparator}))
 }
 
 type runParams struct {
-	version        bool
-	inputFiles     []string
-	output         string
-	filter         string
-	verbose        bool
-	allowUpperCase bool
-	withReader     func(string, func(io.Reader)) error
-	withWriter     func(string, func(io.Writer)) error
-	fprintf        func(w io.Writer, format string, a ...interface{}) (int, error)
-	nameSeparator  string
+	version         bool
+	fancyInputFiles []string
+	jsonInputFiles  []string
+	output          string
+	filter          string
+	verbose         bool
+	allowUpperCase  bool
+	withReader      func(string, func(io.Reader)) error
+	withWriter      func(string, func(io.Writer)) error
+	fprintf         func(w io.Writer, format string, a ...interface{}) (int, error)
+	nameSeparator   string
 }
 
 func run(params runParams) int {
@@ -100,8 +107,10 @@ func run(params runParams) int {
 		return 0
 	}
 
-	err := withReaders([]io.Reader{}, params.inputFiles, params.withReader, func(inputReaders []io.Reader) {
-		exitCode = runHelper(params, inputReaders)
+	err := withReaders([]io.Reader{}, params.fancyInputFiles, params.withReader, func(fancyInputReaders []io.Reader) {
+		withReaders([]io.Reader{}, params.jsonInputFiles, params.withReader, func(jsonInputReaders []io.Reader) {
+			exitCode = runHelper(params, fancyInputReaders, jsonInputReaders)
+		})
 	})
 
 	if err != nil {
@@ -112,17 +121,19 @@ func run(params runParams) int {
 	return exitCode
 }
 
-func parseFancyInputFiles(inputFiles []string, inputReaders []io.Reader, casePolicy compiler.CasePolicy, nameSeparator string) (routes []compiler.CompiledRoute, errors []compiler.RouteError) {
+func parseInputFiles(fancyInputFiles []string, jsonInputFiles []string, inputReaders []io.Reader, casePolicy compiler.CasePolicy, nameSeparator string) (routes []compiler.CompiledRoute, errors []compiler.RouteError) {
+	jsonStart := len(fancyInputFiles)
+	allInputFiles := append(fancyInputFiles, jsonInputFiles...)
 	var entries [][]compiler.RouteFileEntry
-	entries, errors = compiler.ParseRouteFiles(inputFiles, inputReaders, casePolicy)
+	entries, errors = compiler.ParseRouteFiles(allInputFiles, inputReaders, jsonStart, casePolicy)
 	if len(errors) > 0 {
 		return
 	}
-	routes, errors = compiler.ProcessRouteFiles(entries, inputFiles, nameSeparator)
+	routes, errors = compiler.ProcessRouteFiles(entries, allInputFiles, nameSeparator)
 	return
 }
 
-func runHelper(params runParams, inputReaders []io.Reader) int {
+func runHelper(params runParams, fancyInputReaders []io.Reader, jsonInputReaders []io.Reader) int {
 	metadataOut := os.Stdout
 	if params.output == "" {
 		metadataOut = os.Stderr
@@ -144,7 +155,7 @@ func runHelper(params runParams, inputReaders []io.Reader) int {
 		return 1
 	}
 
-	routes, errors := parseFancyInputFiles(params.inputFiles, inputReaders, casePolicy, params.nameSeparator)
+	routes, errors := parseInputFiles(params.fancyInputFiles, params.jsonInputFiles, fancyInputReaders, casePolicy, params.nameSeparator)
 	errors = append(errors, compiler.CheckForGroupErrors(routes)...)
 
 	if len(errors) > 0 {
