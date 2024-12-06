@@ -309,7 +309,7 @@ indentation in the normal syntax.
 
 An example:
 
-```json
+```json5
 [
   // Each element of a pattern is one of
   //   "/"
