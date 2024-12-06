@@ -157,7 +157,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 		case jpsInPattern:
 			switch t.Kind {
 			case j.String:
-				val := string(t.Value)
+				val := t.AsString()
 				if val == "/" {
 					currentEntry.pattern = append(currentEntry.pattern, routeElement{slash, "", t.Line, t.Col})
 				} else if val == "!/" {
@@ -166,6 +166,11 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 					errors = appendRouteErr(errors, NoSlashInsideJSONRoutePatternElement, t.Line, t.Col)
 					return
 				} else {
+					if casePolicy == DisallowUpperCase {
+						if lci := containsNonLowerCase(val); lci != -1 {
+							errors = append(errors, routeError(UpperCaseCharInRoute, t.Line, t.Col+lci))
+						}
+					}
 					currentEntry.pattern = append(currentEntry.pattern, routeElement{constant, val, t.Line, t.Col})
 				}
 			case j.ArrayStart:
@@ -187,7 +192,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 				errors = appendRouteErr(errors, FirstMemberOfJSONRouteFilePatternElementMustBeString, t.Line, t.Col)
 				return
 			}
-			sval := string(t.Value)
+			sval := t.AsString()
 			switch sval {
 			case "*":
 				s = jpsInPatternArrayElementNoArg
@@ -216,7 +221,7 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 				errors = appendRouteErr(errors, JSONRouteFilePatternElementParameterNameMustBeString, t.Line, t.Col)
 				return
 			}
-			currentEntry.pattern[len(currentEntry.pattern)-1].value = string(t.Value)
+			currentEntry.pattern[len(currentEntry.pattern)-1].value = t.AsString()
 			s = jpsInPatternArrayElementNoArg
 		}
 	}
