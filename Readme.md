@@ -153,14 +153,14 @@ indented `.` may be placed before these child routes. This indicates that the
 route above exists as a route in its own right.
 
 ```
-# Only /foo/bar and /foo/amp are defined as valid routes
+# Only /foo/bar and /foo/amp are defined as valid routes.
 foo /foo
   bar /bar
   amp /amp
 ```
 
 ```
-# /foo, /foo/bar and /foo/amp are all defined as valid routes
+# /foo, /foo/bar and /foo/amp are all defined as valid routes.
 foo /foo
   .
   bar /bar
