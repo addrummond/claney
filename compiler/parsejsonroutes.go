@@ -43,8 +43,10 @@ func ParseJsonRouteFile(input io.Reader, casePolicy CasePolicy) (entries []Route
 	var complexPatternElementStartToken j.Token
 
 	var parser j.Parser
+	parser.AllowComments = true
+	parser.AllowTrailingCommas = true
 
-	for t := range parser.TokenizeAllowingComments(inp) {
+	for t := range parser.Tokenize(inp) {
 		if e := t.AsError(); e != nil {
 			errors = append(errors,
 				RouteError{

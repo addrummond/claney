@@ -300,8 +300,8 @@ router recognizes `/foo` and `/bar`, not `/foo/bar`:
 
 In some cases it may be useful to generate route files automatically from
 another source. For this use case, Claney supports a JSON format for route
-files. As an extension to standard JSON, JavaScript style comments are
-permitted.
+files. As an extension to standard JSON, JavaScript-style comments and trailing
+commas are permitted.
 
 Like the normal input syntax, the JSON input is arranged hierarchically. The
 input is an array; each nested array corresponds to an additional level of
