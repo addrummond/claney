@@ -35,7 +35,7 @@ func main() {
 	fancyInputFiles := &inputAccum{}
 	jsonInputFiles := &inputAccum{}
 	flag.Var(fancyInputFiles, "input", "input file (default stdin)")
-	flag.Var(jsonInputFiles, "json-input", "JSON input file (default stdin)")
+	flag.Var(jsonInputFiles, "json-input", "JSON input file")
 	output := flag.String("output", "", "output file (default stdout)")
 	filter := flag.String("filter", "", "include only routes with tags that match the given expression")
 	flag.Parse()
