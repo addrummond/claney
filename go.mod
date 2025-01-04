@@ -3,7 +3,7 @@ module github.com/addrummond/claney
 go 1.23.0
 
 require (
-	github.com/addrummond/jsonstream v0.4.4
+	github.com/addrummond/jsonstream v0.4.11
 	github.com/antchfx/jsonquery v1.3.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-test/deep v1.1.1
