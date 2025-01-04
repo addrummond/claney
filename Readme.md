@@ -322,7 +322,7 @@ An example:
   //   ["**"]
   //   [":", "varname"]
   //   [":**", "varname"]
-  {"name": "foo", "pattern": ["/", "foo", "/", "bar"]},
+  {"name": "foo", "terminal": true, "pattern": ["/", "foo", "/", "bar"]},
   // A pattern may also be specified as a single string, using the same syntax
   // as for a normal input file. This is not advisable if you are generating the
   // input automatically as it requires escaping of special characters, but it
