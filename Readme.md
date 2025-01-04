@@ -272,7 +272,7 @@ claney -input input.routes -output output.json
 The `-name-separator` flag may be used to change the separator used to delimit
 hierarchical route names. The default is `"/"`.
 
-Claney guarantees that dictionary keys in its JSON output are always serialized
+Claney guarantees that object keys in its JSON output are always serialized
 in the same order. Output is therefore guaranteed to be identical for identical
 inputs.
 
