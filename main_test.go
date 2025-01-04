@@ -19,8 +19,119 @@ root /
 	  getstuff /getstuff [api]
 `
 
-// Lower level tests cover most of this, so just some simple tag filtering tests
-// here, and checks that error locations are reported correctly.
+// Lower level tests cover most of this, so just some simple high level tests,
+// some tag filtering tests, and checks that error locations are reported
+// correctly.
+
+func TestRunDifferentInputFormats(t *testing.T) {
+	t.Run("fancy input from file", func(t *testing.T) {
+		var outb strings.Builder
+		exitCode := run(runParams{
+			fancyInputFiles: []string{"file1"},
+			output:          "",
+			filter:          "",
+			verbose:         false,
+			allowUpperCase:  false,
+			withReader:      mockReader("foo /foo"),
+			withWriter:      mockWriter(&outb),
+			fprintf:         dummyFprintf,
+			nameSeparator:   "/",
+		})
+		if exitCode != 0 {
+			t.Fatalf("Expected 0 exit code, got %v\n", exitCode)
+		}
+		out := outb.String()
+		doc, err := jsonquery.Parse(strings.NewReader(out))
+		if err != nil || doc == nil {
+			t.Fatalf("%v %v", doc, err)
+		}
+		names := valuesOf[string](jsonquery.Find(doc, "/families/*/members/*/name"))
+		if !reflect.DeepEqual(names, []string{"foo"}) {
+			t.Fatalf("Expected foo to be included in output, got %+v\n", names)
+		}
+	})
+
+	t.Run("json input from file", func(t *testing.T) {
+		var outb strings.Builder
+		exitCode := run(runParams{
+			jsonInputFiles: []string{"file1"},
+			output:         "",
+			filter:         "",
+			verbose:        false,
+			allowUpperCase: false,
+			withReader:     mockReader(`[{"name": "foo", "terminal": true, "pattern": "/foo"}]`),
+			withWriter:     mockWriter(&outb),
+			fprintf:        dummyFprintf,
+			nameSeparator:  "/",
+		})
+		if exitCode != 0 {
+			t.Fatalf("Expected 0 exit code, got %v\n%v\n", exitCode, outb.String())
+		}
+		out := outb.String()
+		doc, err := jsonquery.Parse(strings.NewReader(out))
+		if err != nil || doc == nil {
+			t.Fatalf("%v %v", doc, err)
+		}
+		names := valuesOf[string](jsonquery.Find(doc, "/families/*/members/*/name"))
+		if !reflect.DeepEqual(names, []string{"foo"}) {
+			t.Fatalf("Expected foo to be included in output, got %+v\n", names)
+		}
+	})
+
+	t.Run("fancy input from stdin", func(t *testing.T) {
+		var outb strings.Builder
+		exitCode := run(runParams{
+			fancyInputFiles: []string{""},
+			output:          "",
+			filter:          "",
+			verbose:         false,
+			allowUpperCase:  false,
+			withReader:      mockReader("foo /foo"),
+			withWriter:      mockWriter(&outb),
+			fprintf:         dummyFprintf,
+			nameSeparator:   "/",
+		})
+		if exitCode != 0 {
+			t.Fatalf("Expected 0 exit code, got %v\n", exitCode)
+		}
+		out := outb.String()
+		doc, err := jsonquery.Parse(strings.NewReader(out))
+		if err != nil || doc == nil {
+			t.Fatalf("%v %v", doc, err)
+		}
+		names := valuesOf[string](jsonquery.Find(doc, "/families/*/members/*/name"))
+		if !reflect.DeepEqual(names, []string{"foo"}) {
+			t.Fatalf("Expected foo to be included in output, got %+v\n", names)
+		}
+	})
+
+	t.Run("json input from stdin", func(t *testing.T) {
+		var outb strings.Builder
+		exitCode := run(runParams{
+			fancyInputFiles: []string{""},
+			output:          "",
+			filter:          "",
+			verbose:         false,
+			allowUpperCase:  false,
+			withReader:      mockReader(`[{"name": "foo", "terminal": true, "pattern": "/foo"}]`),
+			withWriter:      mockWriter(&outb),
+			fprintf:         dummyFprintf,
+			nameSeparator:   "/",
+		})
+		if exitCode != 0 {
+			t.Fatalf("Expected 0 exit code, got %v\n", exitCode)
+		}
+		out := outb.String()
+		doc, err := jsonquery.Parse(strings.NewReader(out))
+		if err != nil || doc == nil {
+			t.Fatalf("%v %v", doc, err)
+		}
+		names := valuesOf[string](jsonquery.Find(doc, "/families/*/members/*/name"))
+		if !reflect.DeepEqual(names, []string{"foo"}) {
+			t.Fatalf("Expected foo to be included in output, got %+v\n", names)
+		}
+	})
+}
 
 func TestRunNoTags(t *testing.T) {
 	var outb strings.Builder
@@ -36,16 +147,16 @@ func TestRunNoTags(t *testing.T) {
 		nameSeparator:   "/",
 	})
 	if exitCode != 0 {
-		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
+		t.Fatalf("Expected 0 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	doc, err := jsonquery.Parse(strings.NewReader(out))
 	if err != nil || doc == nil {
-		t.Errorf("%v %v", doc, err)
+		t.Fatalf("%v %v", doc, err)
 	}
 	names := valuesOf[string](jsonquery.Find(doc, "/families/*/members/*/name"))
 	if !reflect.DeepEqual(names, []string{"root/api", "root/api/getstuff", "root/manager/settings"}) {
-		t.Errorf("Expected all routes to be included in output, got %+v\n", names)
+		t.Fatalf("Expected all routes to be included in output, got %+v\n", names)
 	}
 }
 
@@ -63,16 +174,16 @@ func TestRunExcludeAllTags(t *testing.T) {
 		nameSeparator:   "/",
 	})
 	if exitCode != 0 {
-		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
+		t.Fatalf("Expected 0 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	doc, err := jsonquery.Parse(strings.NewReader(out))
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Fatalf("%v", err)
 	}
 	names := valuesOf[string](jsonquery.Find(doc, "/families/*/members/*/name"))
 	if len(names) != 0 {
-		t.Errorf("Expected no routes to be included in output, got %+v\n", names)
+		t.Fatalf("Expected no routes to be included in output, got %+v\n", names)
 	}
 }
 
@@ -90,16 +201,16 @@ func TestRunIncludeOnlySomeTags(t *testing.T) {
 		nameSeparator:   "/",
 	})
 	if exitCode != 0 {
-		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
+		t.Fatalf("Expected 0 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	doc, err := jsonquery.Parse(strings.NewReader(out))
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Fatalf("%v", err)
 	}
 	names := valuesOf[string](jsonquery.Find(doc, "/families/*/members/*/name"))
 	if !reflect.DeepEqual(names, []string{"root/api", "root/api/getstuff"}) {
-		t.Errorf("Expected just API routes to be included in output, got %+v\n", names)
+		t.Fatalf("Expected just API routes to be included in output, got %+v\n", names)
 	}
 }
 
@@ -133,11 +244,11 @@ another /good/route
 		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
-		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
+		t.Fatalf("Expected 1 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	if out != "" {
-		t.Errorf("Unexpected output written:\n%v\n", out)
+		t.Fatalf("Unexpected output written:\n%v\n", out)
 	}
 
 	consoleOut := consoleOutb.String()
@@ -145,7 +256,7 @@ another /good/route
 		"file2:4:12: missing route name or missing route pattern\n"
 
 	if consoleOut != expectedConsoleOut {
-		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
+		t.Fatalf("Did not get expected output, got\n%v\n", consoleOut)
 	}
 }
 
@@ -169,18 +280,18 @@ r /
 		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
-		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
+		t.Fatalf("Expected 1 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	if out != "" {
-		t.Errorf("Unexpected output written:\n%v\n", out)
+		t.Fatalf("Unexpected output written:\n%v\n", out)
 	}
 
 	consoleOut := consoleOutb.String()
 	const expectedConsoleOut = "file:3:19: upper case character in route\n"
 
 	if consoleOut != expectedConsoleOut {
-		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
+		t.Fatalf("Did not get expected output, got\n%v\n", consoleOut)
 	}
 }
 
@@ -204,18 +315,18 @@ r /
 		nameSeparator:   "/",
 	})
 	if exitCode != 0 {
-		t.Errorf("Expected 0 exit code, got %v\n", exitCode)
+		t.Fatalf("Expected 0 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	if out != `{"constantPortionNGroups":5,"constantPortionRegexp":"^(?:\\/+(?:(?:(?:(foo)(\\/)\\/*(bar)(\\/)\\/*(aMP)\\/*))))(?:\\?[^#]*)?(?:#.*)?$","families":{"foo/bar/aMP":{"matchRegexp":"^(?:(\\/+foo\\/+bar\\/+aMP\\/*))(\\?[^#]*)?(#.*)?$","nLevels":1,"nonparamGroupNumbers":[1],"members":[{"name":"r/route","paramGroupNumbers":{},"tags":[],"methods":["GET"]}]}}}` {
-		t.Errorf("Unexpected output written:\n%v\n", out)
+		t.Fatalf("Unexpected output written:\n%v\n", out)
 	}
 
 	consoleOut := consoleOutb.String()
 	const expectedConsoleOut = "\n1 route\n"
 
 	if consoleOut != expectedConsoleOut {
-		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
+		t.Fatalf("Did not get expected output, got\n%v\n", consoleOut)
 	}
 }
 
@@ -240,18 +351,18 @@ r /
 		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
-		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
+		t.Fatalf("Expected 1 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	if out != "" {
-		t.Errorf("Unexpected output written:\n%v\n", out)
+		t.Fatalf("Unexpected output written:\n%v\n", out)
 	}
 
 	consoleOut := consoleOutb.String()
 	const expectedConsoleOut = "file:4:10: upper case character in route\n"
 
 	if consoleOut != expectedConsoleOut {
-		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
+		t.Fatalf("Did not get expected output, got\n%v\n", consoleOut)
 	}
 }
 
@@ -278,18 +389,18 @@ func TestOverlapErrorReportingSimpleCase(t *testing.T) {
 		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
-		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
+		t.Fatalf("Expected 1 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	if out != "" {
-		t.Errorf("Unexpected output written:\n%v\n", out)
+		t.Fatalf("Unexpected output written:\n%v\n", out)
 	}
 
 	consoleOut := consoleOutb.String()
 	const expectedConsoleOut = "file1:1: (and file5:1): routes overlap\n"
 
 	if consoleOut != expectedConsoleOut {
-		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
+		t.Fatalf("Did not get expected output, got\n%v\n", consoleOut)
 	}
 }
 
@@ -316,11 +427,11 @@ func TestOverlapErrorReportingMultiline(t *testing.T) {
 		nameSeparator:   "/",
 	})
 	if exitCode != 1 {
-		t.Errorf("Expected 1 exit code, got %v\n", exitCode)
+		t.Fatalf("Expected 1 exit code, got %v\n", exitCode)
 	}
 	out := outb.String()
 	if out != "" {
-		t.Errorf("Unexpected output written:\n%v\n", out)
+		t.Fatalf("Unexpected output written:\n%v\n", out)
 	}
 
 	consoleOut := consoleOutb.String()
@@ -328,7 +439,7 @@ func TestOverlapErrorReportingMultiline(t *testing.T) {
 		"file3:2: (and file3:3): routes overlap\n"
 
 	if consoleOut != expectedConsoleOut {
-		t.Errorf("Did not get expected output, got\n%v\n", consoleOut)
+		t.Fatalf("Did not get expected output, got\n%v\n", consoleOut)
 	}
 }
 

@@ -301,6 +301,8 @@ router recognizes `/foo` and `/bar`, not `/foo/bar`:
 In some cases it may be useful to generate route files automatically from
 another source. For this use case, Claney supports a JSON format for route
 files. Use the flag `-json-input` instead of `-input` to trigger JSON parsing.
+You can tell Claney to interpret stdin as JSON by passing the `-json-stdin`
+flag.
 
 As an extension to standard JSON, JavaScript-style comments and trailing
 commas are permitted.

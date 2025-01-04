@@ -36,6 +36,7 @@ func main() {
 	jsonInputFiles := &inputAccum{}
 	flag.Var(fancyInputFiles, "input", "input file (default stdin)")
 	flag.Var(jsonInputFiles, "json-input", "JSON input file")
+	jsonStdin := flag.Bool("json-stdin", false, "interpret stdin as JSON (as with -json-input)")
 	output := flag.String("output", "", "output file (default stdout)")
 	filter := flag.String("filter", "", "include only routes with tags that match the given expression")
 	flag.Parse()
@@ -53,9 +54,12 @@ func main() {
 
 	var fancyFilenames []string
 	var jsonFilenames []string
-	if len(fancyInputFiles.filenames) == 0 && len(jsonFilenames) == 0 {
-		fancyFilenames = []string{""} // indicates stdin
-		jsonFilenames = []string{""}
+	if len(fancyInputFiles.filenames) == 0 && len(jsonInputFiles.filenames) == 0 {
+		if *jsonStdin {
+			jsonFilenames = []string{""} // indicates stdin
+		} else {
+			fancyFilenames = []string{""} // indicates stdin
+		}
 	} else {
 		fancyFilenames = fancyInputFiles.filenames
 		jsonFilenames = jsonInputFiles.filenames
@@ -121,11 +125,12 @@ func run(params runParams) int {
 	return exitCode
 }
 
-func parseInputFiles(fancyInputFiles []string, jsonInputFiles []string, inputReaders []io.Reader, casePolicy compiler.CasePolicy, nameSeparator string) (routes []compiler.CompiledRoute, errors []compiler.RouteError) {
+func parseInputFiles(fancyInputFiles []string, jsonInputFiles []string, fancyInputReaders []io.Reader, jsonInputReaders []io.Reader, casePolicy compiler.CasePolicy, nameSeparator string) (routes []compiler.CompiledRoute, errors []compiler.RouteError) {
 	jsonStart := len(fancyInputFiles)
-	allInputFiles := append(fancyInputFiles, jsonInputFiles...)
+	allInputFiles := append(append([]string{}, fancyInputFiles...), jsonInputFiles...)
+	allInputReaders := append(append([]io.Reader{}, fancyInputReaders...), jsonInputReaders...)
 	var entries [][]compiler.RouteFileEntry
-	entries, errors = compiler.ParseRouteFiles(allInputFiles, inputReaders, jsonStart, casePolicy)
+	entries, errors = compiler.ParseRouteFiles(allInputFiles, allInputReaders, jsonStart, casePolicy)
 	if len(errors) > 0 {
 		return
 	}
@@ -155,7 +160,7 @@ func runHelper(params runParams, fancyInputReaders []io.Reader, jsonInputReaders
 		return 1
 	}
 
-	routes, errors := parseInputFiles(params.fancyInputFiles, params.jsonInputFiles, fancyInputReaders, casePolicy, params.nameSeparator)
+	routes, errors := parseInputFiles(params.fancyInputFiles, params.jsonInputFiles, fancyInputReaders, jsonInputReaders, casePolicy, params.nameSeparator)
 	errors = append(errors, compiler.CheckForGroupErrors(routes)...)
 
 	if len(errors) > 0 {
