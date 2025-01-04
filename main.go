@@ -176,6 +176,11 @@ func runHelper(params runParams, fancyInputReaders []io.Reader, jsonInputReaders
 		return 1
 	}
 
+	nonterminalsWithoutChildren := compiler.FindNonterminalRoutesWithoutChildren(routes)
+	if len(nonterminalsWithoutChildren) > 0 {
+		printNonterminalRoutesWithoutChildrenWarning(params, metadataOut, routes, nonterminalsWithoutChildren)
+	}
+
 	routeRegexps := compiler.GetRouteRegexps(routes, filter)
 	json, nRoutes := compiler.RouteRegexpsToJSON(&routeRegexps, filter)
 
@@ -229,6 +234,22 @@ func printBigGroupWarning(params runParams, metadataOut *os.File, err compiler.R
 
 	for _, r := range sorted {
 		_, _ = params.fprintf(metadataOut, "    %v:%v: %v\n", r.Info.Filename, r.Info.Line, r.Info.Name)
+	}
+}
+
+func printNonterminalRoutesWithoutChildrenWarning(params runParams, metadataOut *os.File, routes []compiler.CompiledRoute, noChildrenIndices []int) {
+	sort.Slice(noChildrenIndices, func(i, j int) bool {
+		if routes[noChildrenIndices[i]].Info.Filename == routes[noChildrenIndices[j]].Info.Filename {
+			return routes[noChildrenIndices[i]].Info.Line < routes[noChildrenIndices[j]].Info.Line
+		}
+		return routes[noChildrenIndices[i]].Info.Filename < routes[noChildrenIndices[j]].Info.Filename
+	})
+
+	_, _ = params.fprintf(metadataOut, "WARNING: Nonterminal route(s) without children\n")
+	_, _ = params.fprintf(metadataOut, "  The following routes contribute nothing to the output:\n")
+
+	for _, i := range noChildrenIndices {
+		_, _ = params.fprintf(metadataOut, "    %v:%v: %v\n", routes[i].Info.Filename, routes[i].Info.Line, routes[i].Info.Name)
 	}
 }
 

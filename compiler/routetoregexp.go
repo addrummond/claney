@@ -315,6 +315,17 @@ func CheckForGroupErrors(routes []CompiledRoute) (errors []RouteError) {
 	return
 }
 
+func FindNonterminalRoutesWithoutChildren(routes []CompiledRoute) (withoutChildren []int) {
+	for i, r := range routes {
+		if !r.Info.Terminal {
+			if i+1 >= len(routes) || routes[i+1].Info.Depth <= r.Info.Depth {
+				withoutChildren = append(withoutChildren, i)
+			}
+		}
+	}
+	return
+}
+
 func checkNonadjacentNamesakes(terminalLines map[string][]tne, linesWithEntries map[int]struct{}) []RouteError {
 	var errors []RouteError
 

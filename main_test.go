@@ -131,6 +131,43 @@ func TestRunDifferentInputFormats(t *testing.T) {
 			t.Fatalf("Expected foo to be included in output, got %+v\n", names)
 		}
 	})
+
+	t.Run("json input with just one route that's a nonterminal", func(t *testing.T) {
+		var outb strings.Builder
+		var warningPrinted bool
+		_ = warningPrinted
+		exitCode := run(runParams{
+			jsonInputFiles: []string{""},
+			output:         "",
+			filter:         "",
+			verbose:        false,
+			allowUpperCase: false,
+			withReader:     mockReader(`[{"name": "foo", "pattern": "/foo"}]`),
+			withWriter:     mockWriter(&outb),
+			fprintf: func(_ io.Writer, msg string, _ ...any) (int, error) {
+				if strings.Contains(msg, "Nonterminal route(s) without children") {
+					warningPrinted = true
+				}
+				return 0, nil
+			},
+			nameSeparator: "/",
+		})
+		if exitCode != 0 {
+			t.Fatalf("Expected 0 exit code, got %v\n", exitCode)
+		}
+		out := outb.String()
+		doc, err := jsonquery.Parse(strings.NewReader(out))
+		if err != nil || doc == nil {
+			t.Fatalf("%v %v", doc, err)
+		}
+		families := valuesOf[map[string]any](jsonquery.Find(doc, "/families/*"))
+		if len(families) != 0 {
+			t.Fatalf("Expected empty 'families' map, got len %v: %+v\n", len(families), families)
+		}
+		if !warningPrinted {
+			t.Fatalf("Expected 'nonterminal route(s) without children' warning to be printed")
+		}
+	})
 }
 
 func TestRunNoTags(t *testing.T) {
@@ -476,7 +513,7 @@ func mockWriter(out *strings.Builder) func(string, func(io.Writer)) error {
 	}
 }
 
-func dummyFprintf(io.Writer, string, ...interface{}) (int, error) {
+func dummyFprintf(io.Writer, string, ...any) (int, error) {
 	return 0, nil
 }
 
