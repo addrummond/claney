@@ -108,15 +108,15 @@ func TestRunDifferentInputFormats(t *testing.T) {
 	t.Run("json input from stdin", func(t *testing.T) {
 		var outb strings.Builder
 		exitCode := run(runParams{
-			fancyInputFiles: []string{""},
-			output:          "",
-			filter:          "",
-			verbose:         false,
-			allowUpperCase:  false,
-			withReader:      mockReader(`[{"name": "foo", "terminal": true, "pattern": "/foo"}]`),
-			withWriter:      mockWriter(&outb),
-			fprintf:         dummyFprintf,
-			nameSeparator:   "/",
+			jsonInputFiles: []string{""},
+			output:         "",
+			filter:         "",
+			verbose:        false,
+			allowUpperCase: false,
+			withReader:     mockReader(`[{"name": "foo", "terminal": true, "pattern": "/foo"}]`),
+			withWriter:     mockWriter(&outb),
+			fprintf:        dummyFprintf,
+			nameSeparator:  "/",
 		})
 		if exitCode != 0 {
 			t.Fatalf("Expected 0 exit code, got %v\n", exitCode)
